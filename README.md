@@ -29,14 +29,14 @@ var _ = ppipe._;
 
 //doubleSay, quote, join and exclaim are not included for brevity.
 ppipe("hello")
-      (doubleSay)
-      (delay(quote))
-      (delay(join), _, "I said")
-      (join, "and suddenly", _, "without thinking")
-      (delay(exclaim))
-      (exclaim).then(res => {
-        assert.equal('and suddenly, "hello, hello", I said, without thinking!!', res);
-      });
+  (doubleSay)
+  (delay(quote))
+  (delay(join), _, "I said")
+  (join, "and suddenly", _, "without thinking")
+  (delay(exclaim))
+  (exclaim).then(res => {
+    assert.equal('and suddenly, "hello, hello", I said, without thinking!!', res);
+  });
 
 assert.equal(
   ppipe("hello")(doubleSay)(exclaim).val,
