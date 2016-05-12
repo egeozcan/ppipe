@@ -44,3 +44,19 @@ assert.equal(
 ```
 
 Look at the test/test.js for more examples.
+
+When the bind operator (`::`) gets in the language, this will also be possible:
+
+```javascript
+  function p() {
+   return ppipe(this);
+  }
+  //"--, hello, hello!!!!, 11oneoneleven"
+  "hello"::p()
+    (doubleSay)
+    (exclaim)
+    (exclaim)
+    (exclaim)
+    (exclaim)
+    (join, "--", _, "11oneoneleven").val
+```
