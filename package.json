@@ -1,0 +1,21 @@
+{
+  "name": "ppipe",
+  "version": "1.0.0",
+  "description": "piping without the operator support",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "piping",
+    "promise"
+  ],
+  "author": "Yavuz Ege Özcan",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0"
+  }
+}
