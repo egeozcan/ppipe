@@ -59,7 +59,7 @@ describe('ppipe', function () {
   let result = 'Hello!';
   
   it('should wrap promise factories in the middle of the chain', function() {
-    return ppipe(message)(delay(capitalize))(exclaim).then(res => {
+    return ppipe(message)(Promise.resolve.bind(Promise))(delay(capitalize))(exclaim).then(res => {
       return assert.equal(result, res);
     });
   });
