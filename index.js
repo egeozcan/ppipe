@@ -8,12 +8,10 @@ function pipe(val, fn) {
   let idx = params.indexOf(ppipe._);
   let deleteCount = idx >= 0 ? 1 : 0;
   if (isPromise(val)) {
-    let onResolve = res => {
+    return ppipe(val.then(function(res) {
       params.splice(Math.max(idx, 0), deleteCount, res);
-      var newVal = fn.apply(null, params);
-      return newVal;
-    }
-    return ppipe(val.then(onResolve));
+      return fn.apply(null, params);
+    }));
   } else {
     params.splice(Math.max(idx, 0), deleteCount, val);
     return ppipe(fn.apply(null, params));
@@ -21,10 +19,11 @@ function pipe(val, fn) {
 }
 
 let ppipe = function(val) {
-  var res = pipe.bind(null, val);
+  let res = pipe.bind(null, val);
   res.val = val;
   if (isPromise(val)) {
     res.then = val.then.bind(val);
+    res.catch = val.catch.bind(val);
   } else {
     res.then = fn => fn(val);
   }

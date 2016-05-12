@@ -1,5 +1,5 @@
-var assert = require('chai').assert;
-var ppipe = require('../index.js');
+let assert = require('chai').assert;
+let ppipe = require('../index.js');
 
 function doubleSay(str) {
   return str + ", " + str;
@@ -9,7 +9,7 @@ function capitalize(str) {
 }
 function delay(fn) {
   return function () {
-    var args = arguments;
+    let args = arguments;
     return new Promise(resolve => setTimeout(() => resolve(fn.apply(null, args)), 10))
   };
 }
@@ -17,17 +17,17 @@ function exclaim(str) {
   return str + '!';
 }
 function join() {
-  var arr = Array.from(arguments);
+  let arr = Array.from(arguments);
   return arr.join(", "); 
 }
 function quote(str) {
   return '"' + str + '"';
 }
 
-var _ = ppipe._;
+let _ = ppipe._;
 
 describe('ppipe', function () {
-  var message = "hello";
+  let message = "hello";
   it('should correctly pass the params to the first fn', function () {
     assert.equal(
       ppipe(message)(doubleSay).val,
@@ -56,7 +56,7 @@ describe('ppipe', function () {
     );
   }); 
   
-  var result = 'Hello!';
+  let result = 'Hello!';
   
   it('should wrap promise factories in the middle of the chain', function() {
     return ppipe(message)(delay(capitalize))(exclaim).then(res => {
