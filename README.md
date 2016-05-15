@@ -31,17 +31,17 @@ ppipe(1)
   (add, 1)
   (double)
   (square)
-  (divide, _, 8).val; // 2
+  (divide, _, 8)(); // 2
 
 ppipe("hello")
-  (doubleSay)
+  (repeat)
   (delay(quote))
   (delay(join), _, "I said")
   (join, "and suddenly", _, "without thinking")
   (delay(exclaim))
   (exclaim).then(res => console.log(res)); //'and suddenly, "hello, hello", I said, without thinking!!'
 
-ppipe("hello")(doubleSay)(exclaim).val;// "hello, hello!"
+ppipe("hello")(repeat)(exclaim)();// "hello, hello!"
 ```
 
 Look at the test/test.js for more examples.
@@ -52,12 +52,12 @@ When the bind operator (`::`) gets in the language, this will also be possible:
   function p() {
    return ppipe(this);
   }
-  //"--, hello, hello!!!!, 11oneoneleven"
+  //"--, hello, hello!!!!, END"
   "hello"::p()
-    (doubleSay)
+    (repeat)
     (exclaim)
     (exclaim)
     (exclaim)
     (exclaim)
-    (join, "--", _, "11oneoneleven").val
+    (join, "--", _, "END")()
 ```

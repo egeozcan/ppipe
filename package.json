@@ -1,6 +1,6 @@
 {
   "name": "ppipe",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "piping without the operator support",
   "main": "index.js",
   "directories": {
