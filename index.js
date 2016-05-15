@@ -3,6 +3,9 @@ function isPromise(val) {
 }
 
 function pipe(val, fn) {
+  if (!fn) {
+    return val;
+  }
   let params = Array.from(arguments);
   params.splice(0, 2);
   let idx = params.indexOf(ppipe._);

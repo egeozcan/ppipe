@@ -54,6 +54,13 @@ describe('ppipe', function () {
       ppipe(message)(doubleSay)(join, _, "I said")(exclaim)(join, "and suddenly", _, "without thinking").val,
       join("and suddenly", exclaim(join(doubleSay(message), "I said")), "without thinking")
     );
+  });
+  
+  it('should return the value when no function is passed', function() {
+    assert.equal(
+      ppipe(message)(doubleSay)(join, _, "I said")(exclaim)(join, "and suddenly", _, "without thinking")(),
+      join("and suddenly", exclaim(join(doubleSay(message), "I said")), "without thinking")
+    );
   }); 
   
   let result = 'Hello!';
