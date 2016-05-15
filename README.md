@@ -27,20 +27,21 @@ function delay(fn) {
 in a multi-parameter function*/
 var _ = ppipe._;
 
-//doubleSay, quote, join and exclaim are not included for brevity.
+ppipe(1)
+  (add, 1)
+  (double)
+  (square)
+  (divide, _, 8).val; // 2
+
 ppipe("hello")
   (doubleSay)
   (delay(quote))
   (delay(join), _, "I said")
   (join, "and suddenly", _, "without thinking")
   (delay(exclaim))
-  (exclaim).then(res => {
-    assert.equal('and suddenly, "hello, hello", I said, without thinking!!', res);
-  });
+  (exclaim).then(res => console.log(res)); //'and suddenly, "hello, hello", I said, without thinking!!'
 
-assert.equal(
-  ppipe("hello")(doubleSay)(exclaim).val,
-  "hello, hello!");
+ppipe("hello")(doubleSay)(exclaim).val;// "hello, hello!"
 ```
 
 Look at the test/test.js for more examples.
