@@ -89,6 +89,12 @@ describe('ppipe', function () {
     });
   });
   
+  it('should simulate promises even when value is not delayed', function() {
+    return ppipe(message)(capitalize)(exclaim).then(res => {
+      return assert.equal(result, res);
+    });
+  });
+  
   it('should be able to insert promise values as parameters', function() {
     return ppipe(message)
       (doubleSay)
