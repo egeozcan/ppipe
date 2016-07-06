@@ -37,7 +37,10 @@ let ppipe = function(val) {
     res.then = val.then.bind(val);
     res.catch = val.catch.bind(val);
   } else {
-    res.then = fn => fn(val);
+    res.then = (success, fail) => {
+      let promise = Promise.resolve(res).then(success);
+      return fail ? promise.catch(fail) : promise;
+    };
   }
   return res;
 }
