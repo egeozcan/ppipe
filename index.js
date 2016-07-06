@@ -7,18 +7,27 @@ function pipe(val, fn) {
     return val;
   }
   let params = Array.from(arguments);
+  //remove val and fn from the params
   params.splice(0, 2);
   let idx = params.indexOf(ppipe._);
-  let deleteCount = idx >= 0 ? 1 : 0;
-  if (isPromise(val)) {
-    return ppipe(val.then(function(res) {
-      params.splice(Math.max(idx, 0), deleteCount, res);
-      return fn.apply(null, params);
-    }));
+  let deleteCount, startIndex, res;
+  if(idx >= 0) {
+    deleteCount = 1;
+    startIndex = idx;
   } else {
-    params.splice(Math.max(idx, 0), deleteCount, val);
-    return ppipe(fn.apply(null, params));
+    deleteCount = 0;
+    startIndex = 0;
   }
+  if (isPromise(val)) {
+    res = val.then(function(promisedVal) {
+      params.splice(startIndex, deleteCount, promisedVal);
+      return fn.apply(null, params);
+    });
+  } else {
+    params.splice(startIndex, deleteCount, val);
+    res = fn.apply(null, params);
+  }
+  return ppipe(res);
 }
 
 let ppipe = function(val) {
