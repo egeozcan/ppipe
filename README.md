@@ -23,8 +23,7 @@ function delay(fn) {
   };
 }
 
-/* used for inserting the result to a specific location
-in a multi-parameter function*/
+//this special object is a placeholder for the incoming value from the previous function in the chain
 const _ = ppipe._;
 const repeat = x => [x, x].join(", ");
 const quote = x => ['"', x, '"'].join('');
