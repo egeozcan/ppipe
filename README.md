@@ -29,6 +29,7 @@ const repeat = x => [x, x].join(", ");
 const quote = x => ['"', x, '"'].join('');
 const exclaim = x => x + "!";
 const add = (x, y) => x + y;
+const double = x => return x + x;
 function join() { return Array.prototype.join.call(arguments, " "); }
 
 ppipe(1)
