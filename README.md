@@ -30,6 +30,8 @@ const quote = x => ['"', x, '"'].join('');
 const exclaim = x => x + "!";
 const add = (x, y) => x + y;
 const double = x => x + x;
+const square = x => x * x;
+const divide = (x, y) => x / y;
 function join() { return Array.prototype.join.call(arguments, " "); }
 
 ppipe(1)
