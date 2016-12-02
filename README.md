@@ -29,27 +29,31 @@ const add = (x, y) => x + y;
 const double = x => x + x;
 const square = x => x * x;
 const divide = (x, y) => x / y;
-function join() { return Array.prototype.join.call(arguments, " "); }
 
 ppipe(1)
   (add, 1)
   (double)
   (square)
-  (divide, _, 8)(); // 2
+  (divide, _, 8) //order of arguments can be manupilated
+  (add, 1)(); // 3
 
 const repeat = x => [x, x].join(", ");
 const quote = x => ['"', x, '"'].join('');
+const join = (x, y, z) => [x, y, z].join(" ");
 const exclaim = x => x + "!";
+const delayedQuote = delay(quote);
+const delayedJoin = delay(join);
+const delayedExclaim = delay(exclaim);
 
 ppipe("hello")
   (repeat)
-  (delay(quote))
-  (delay(join), _, "I said")
+  (delayedQuote) //mixing it up with async functions
+  (delayedJoin, _, "I said")
   (join, "and suddenly", _, "without thinking")
-  (delay(exclaim))
+  (delayedExclaim)
   (exclaim).then(res => console.log(res)); //'and suddenly, "hello, hello", I said, without thinking!!'
 
-ppipe("hello")(repeat)(exclaim)();// "hello, hello!"
+ppipe("hello")(repeat)(exclaim)(); //"hello, hello!"
 ```
 
 Look at the test/test.js for more examples.
@@ -60,12 +64,12 @@ When the bind operator (`::`) gets in the language, this will also be possible:
   function p() {
    return ppipe(this);
   }
-  //"well, hello, hello!!!!, END"
-  "hello"::p()
+  //"well, hello, hello!!!!"
+  "hello"::p() //so you will be able to start the chain AFTER a result, without wrapping
     (repeat)
     (exclaim)
     (exclaim)
     (exclaim)
     (exclaim)
-    (join, "well,", _, "END")()
+    (join, "well,", _)();
 ```
