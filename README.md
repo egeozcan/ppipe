@@ -25,7 +25,12 @@ function delay(fn) {
 
 /* used for inserting the result to a specific location
 in a multi-parameter function*/
-var _ = ppipe._;
+const _ = ppipe._;
+const repeat = x => [x, x].join(", ");
+const quote = x => ['"', x, '"'].join('');
+const exclaim = x => x + "!";
+const add = (x, y) => x + y;
+function join() { return Array.prototype.join.call(arguments, " "); }
 
 ppipe(1)
   (add, 1)
@@ -52,12 +57,12 @@ When the bind operator (`::`) gets in the language, this will also be possible:
   function p() {
    return ppipe(this);
   }
-  //"--, hello, hello!!!!, END"
+  //"well, hello, hello!!!!, END"
   "hello"::p()
     (repeat)
     (exclaim)
     (exclaim)
     (exclaim)
     (exclaim)
-    (join, "--", _, "END")()
+    (join, "well,", _, "END")()
 ```
