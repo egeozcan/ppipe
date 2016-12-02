@@ -25,9 +25,6 @@ function delay(fn) {
 
 //this special object is a placeholder for the incoming value from the previous function in the chain
 const _ = ppipe._;
-const repeat = x => [x, x].join(", ");
-const quote = x => ['"', x, '"'].join('');
-const exclaim = x => x + "!";
 const add = (x, y) => x + y;
 const double = x => x + x;
 const square = x => x * x;
@@ -39,6 +36,10 @@ ppipe(1)
   (double)
   (square)
   (divide, _, 8)(); // 2
+
+const repeat = x => [x, x].join(", ");
+const quote = x => ['"', x, '"'].join('');
+const exclaim = x => x + "!";
 
 ppipe("hello")
   (repeat)
