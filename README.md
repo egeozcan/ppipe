@@ -12,16 +12,6 @@ await in the chained functions.
 ## All features at a glance
 
 ```javascript
-/*for example's sake, just wraps the fn in a promise
-which resolves with the returned value after a delay*/
-function delay(fn) {
-  return function () {
-    var args = arguments;
-    return new Promise(resolve => 
-      setTimeout(() => 
-        resolve(fn.apply(null, args)), 10));
-  };
-}
 
 //this special object is a placeholder for the incoming value from the previous function in the chain
 const _ = ppipe._;
@@ -41,35 +31,26 @@ const repeat = x => [x, x].join(", ");
 const quote = x => ['"', x, '"'].join('');
 const join = (x, y, z) => [x, y, z].join(" ");
 const exclaim = x => x + "!";
+/*for example's sake, just wraps the fn in a promise
+which resolves with the returned value after a 10ms delay*/
+const delay = fn => (...args) =>
+	new Promise(resolve => setTimeout(() => resolve(fn.apply(null, args)), 10));
 const delayedQuote = delay(quote);
 const delayedJoin = delay(join);
 const delayedExclaim = delay(exclaim);
 
 ppipe("hello")
   (repeat)
-  (delayedQuote) //mixing it up with async functions
-  (delayedJoin, _, "I said")
+  //mixing it up with async functions
+  (delayedQuote)
+  //the result from the previous function will be the last argument to the next if there is no placeholder
+  (delayedJoin, "I shouted")
   (join, "and suddenly", _, "without thinking")
   (delayedExclaim)
-  (exclaim).then(res => console.log(res)); //'and suddenly, "hello, hello", I said, without thinking!!'
+  //'and suddenly I shouted "hello, hello"  without thinking!!'
+  (exclaim).then(res => console.log(res));
 
 ppipe("hello")(repeat)(exclaim)(); //"hello, hello!"
 ```
 
 Look at the test/test.js for more examples.
-
-When the bind operator (`::`) gets in the language, this will also be possible:
-
-```javascript
-  function p() {
-   return ppipe(this);
-  }
-  //"well, hello, hello!!!!"
-  "hello"::p() //so you will be able to start the chain AFTER a result, without wrapping
-    (repeat)
-    (exclaim)
-    (exclaim)
-    (exclaim)
-    (exclaim)
-    (join, "well,", _)();
-```

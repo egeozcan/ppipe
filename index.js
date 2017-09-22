@@ -8,13 +8,9 @@ function pipe(val, fn, ...params) {
 	}
 	const idx = params.indexOf(ppipe._);
 	const argumentPlaceholderExists = idx >= 0;
-	const argumentInsertPosition = Math.max(idx, 0);
+	const argumentInsertPos = argumentPlaceholderExists ? idx : params.length;
 	const callResultFn = value => {
-		params.splice(
-			argumentInsertPosition,
-			argumentPlaceholderExists ? 1 : 0,
-			value
-		);
+		params.splice(argumentInsertPos, argumentPlaceholderExists ? 1 : 0, value);
 		return fn.apply(null, params);
 	};
 	const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
