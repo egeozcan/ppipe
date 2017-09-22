@@ -34,7 +34,7 @@ ppipe(1)
   (add, 1)
   (double)
   (square)
-  (divide, _, 8) //order of arguments can be manupilated
+  (divide, _, 8) //order of arguments can be manipulated
   (add, 1)(); // 3
 
 const repeat = x => [x, x].join(", ");
