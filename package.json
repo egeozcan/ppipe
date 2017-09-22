@@ -13,9 +13,9 @@
     "piping",
     "promise"
   ],
-  "repository" : {
-    "type" : "git" ,
-    "url" : "https://github.com/egeozcan/ppipe.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/egeozcan/ppipe.git"
   },
   "author": "Yavuz Ege Özcan",
   "license": "ISC",

@@ -1,48 +1,35 @@
 function isPromise(val) {
-  return val && typeof val.then === "function";
+	return val && typeof val.then === "function";
 }
 
-function pipe(val, fn) {
-  if (!fn) {
-    return val;
-  }
-  let params = Array.from(arguments);
-  //remove val and fn from the params
-  params.splice(0, 2);
-  let idx = params.indexOf(ppipe._);
-  let deleteCount = 0;
-  let startIndex = 0;
-  if(idx >= 0) {
-    deleteCount = 1;
-    startIndex = idx;
-  }
-  let res;
-  if (isPromise(val)) {
-    res = val.then(function(promisedVal) {
-      params.splice(startIndex, deleteCount, promisedVal);
-      return fn.apply(null, params);
-    });
-  } else {
-    params.splice(startIndex, deleteCount, val);
-    res = fn.apply(null, params);
-  }
-  return ppipe(res);
+function pipe(val, fn, ...params) {
+	if (!fn) {
+		return val;
+	}
+	const idx = params.indexOf(ppipe._);
+	const argumentPlaceholderExists = idx >= 0;
+	const argumentInsertPosition = Math.max(idx, 0);
+	const callResultFn = value => {
+		params.splice(
+			argumentInsertPosition,
+			argumentPlaceholderExists ? 1 : 0,
+			value
+		);
+		return fn.apply(null, params);
+	};
+	const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
+	return ppipe(res);
 }
 
 const ppipe = function(val) {
-  const res = pipe.bind(null, val);
-  res.val = val;
-  if (isPromise(val)) {
-    res.then = val.then.bind(val);
-    res.catch = val.catch.bind(val);
-  } else {
-    res.then = (success, fail) => {
-      const promise = Promise.resolve(val).then(success);
-      return fail ? promise.catch(fail) : promise;
-    };
-  }
-  return res;
-}
-ppipe._ = {};
+	const res = pipe.bind(null, val);
+	res.val = val;
+	const promised = Promise.resolve(val);
+	return Object.assign(res, {
+		then: promised.then.bind(promised),
+		catch: promised.catch.bind(promised)
+	});
+};
+ppipe._ = Symbol();
 
 module.exports = ppipe;
