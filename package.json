@@ -1,25 +1,22 @@
 {
-  "name": "ppipe",
-  "version": "1.0.3",
-  "description": "piping without the operator support",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "mocha"
-  },
-  "keywords": [
-    "piping",
-    "promise"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/egeozcan/ppipe.git"
-  },
-  "author": "Yavuz Ege Özcan",
-  "license": "ISC",
-  "devDependencies": {
-    "chai": "^3.5.0"
-  }
+	"name": "ppipe",
+	"version": "1.1.0",
+	"description": "piping without the operator support",
+	"main": "index.js",
+	"directories": {
+		"test": "test"
+	},
+	"scripts": {
+		"test": "mocha"
+	},
+	"keywords": ["piping", "promise"],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/egeozcan/ppipe.git"
+	},
+	"author": "Yavuz Ege Özcan",
+	"license": "ISC",
+	"devDependencies": {
+		"chai": "^3.5.0"
+	}
 }
