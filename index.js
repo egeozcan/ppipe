@@ -2,32 +2,30 @@ function isPromise(val) {
 	return val && typeof val.then === "function";
 }
 
+const placeHolder = Symbol();
+
 function ppipe(val) {
 	const promised = Promise.resolve(val);
 	const pipe = function(fn, ...params) {
 		if (!fn) {
 			return val;
 		}
-		const idx = params.indexOf(ppipe._);
-		const argumentPlaceholderExists = idx >= 0;
-		const argumentInsertPos = argumentPlaceholderExists ? idx : params.length;
+		const plHoldrIdx = params.indexOf(placeHolder);
+		const plHoldrExists = plHoldrIdx >= 0;
+		const argumentInsPos = plHoldrExists ? plHoldrIdx : params.length;
 		const callResultFn = value => {
-			params.splice(
-				argumentInsertPos,
-				argumentPlaceholderExists ? 1 : 0,
-				value
-			);
+			params.splice(argumentInsPos, plHoldrExists ? 1 : 0, value);
 			return fn(...params);
 		};
 		const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
 		return ppipe(res);
 	};
 	pipe.val = val;
-	pipe.then = promised.then.bind(promised);
-	pipe.catch = promised.catch.bind(promised);
+	pipe.then = (...args) => promised.then(...args);
+	pipe.catch = (...args) => promised.catch(...args);
 	return pipe;
 }
 
-ppipe._ = Symbol();
+ppipe._ = placeHolder;
 
 module.exports = ppipe;
