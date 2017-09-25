@@ -2,8 +2,9 @@ function isPromise(val) {
 	return val && typeof val.then === "function";
 }
 
-function pipe(val) {
-	return function(fn, ...params) {
+function ppipe(val) {
+	const promised = Promise.resolve(val);
+	const pipe = function(fn, ...params) {
 		if (!fn) {
 			return val;
 		}
@@ -16,22 +17,17 @@ function pipe(val) {
 				argumentPlaceholderExists ? 1 : 0,
 				value
 			);
-			return fn.apply(null, params);
+			return fn(...params);
 		};
 		const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
 		return ppipe(res);
 	};
+	pipe.val = val;
+	pipe.then = promised.then.bind(promised);
+	pipe.catch = promised.catch.bind(promised);
+	return pipe;
 }
 
-const ppipe = function(val) {
-	const res = pipe(val);
-	res.val = val;
-	const promised = Promise.resolve(val);
-	return Object.assign(res, {
-		then: promised.then.bind(promised),
-		catch: promised.catch.bind(promised)
-	});
-};
 ppipe._ = Symbol();
 
 module.exports = ppipe;
