@@ -21,9 +21,24 @@ function ppipe(val) {
 		return ppipe(res);
 	};
 	pipe.val = val;
-	pipe.then = (...args) => promised.then(...args);
-	pipe.catch = (...args) => promised.catch(...args);
-	return pipe;
+	return new Proxy(pipe, {
+		get(target, name) {
+			let res;
+			if (!!val[name]) {
+				return typeof val[name] === "function"
+					? (...params) => ppipe(val[name].apply(val, params))
+					: val[name];
+			}
+			if (!!promised[name]) {
+				return typeof promised[name] === "function"
+					? promised[name].bind(promised)
+					: promised[name];
+			}
+			if (name === "val") {
+				return val;
+			}
+		}
+	});
 }
 
 ppipe._ = placeHolder;

@@ -129,12 +129,30 @@ describe("ppipe", function() {
 			"and suddenly",
 			_,
 			"without thinking"
-		)(delay(exclaim))(exclaim).then(res => {
-			return assert.equal(
+		)(delay(exclaim))(exclaim).then(res =>
+			assert.equal(
 				'and suddenly, "hello, hello", I said, without thinking!!',
 				res
-			);
+			)
+		);
+	});
+
+	it("should be able to access result prototype methods", function() {
+		return ppipe([1, 2, 3]).map(i => i + 1)(x =>
+			x.reduce((x, y) => x + y, 0)
+		).then(res => {
+			return assert.equal(9, res);
 		});
+	});
+
+	it("should be able to revert to chaining and back from prototype methods", function() {
+		const divide = (x, y) => x / y;
+		return (
+			ppipe("dummy")(() => [1, 2, 3])
+				.map(i => i + 1)
+				/*reduce: 9, divide: 9/3 == 3*/
+				.reduce((x, y) => x + y, 0)(divide, _, 3).then(x => assert.equal(3, x))
+		);
 	});
 });
 

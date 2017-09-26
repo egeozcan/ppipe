@@ -53,4 +53,15 @@ ppipe("hello")
 ppipe("hello")(repeat)(exclaim)(); //"hello, hello!"
 ```
 
+## New in v1.2.0: Access prototype methods and properties from the chain!
+
+```javascript
+
+const divide = (x, y) => x / y;
+ppipe([1, 2, 3])
+  .map(i => i + 1)/*[2, 3, 4]*/.reduce((x, y) => x + y, 0)/*9*/(divide, _, 3)/*3*/.then(res => {
+  return assert.equal(3, res);
+});
+```
+
 Look at the test/test.js for more examples.
