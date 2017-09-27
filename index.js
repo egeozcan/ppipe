@@ -48,11 +48,14 @@ function ppipe(val, thisVal) {
 	};
 	return new Proxy(pipe, {
 		get(target, name) {
-			if (!!val[name]) {
-				if (typeof val[name] !== "function") {
-					return val[name];
-				}
+			if (
+				typeof val[name] !== "undefined" ||
+				(!!thisVal && typeof thisVal[name] === "function")
+			) {
 				const ctx = !!thisVal ? thisVal : val;
+				if (typeof ctx[name] !== "function") {
+					return ctx[name];
+				}
 				return (...params) =>
 					ppipe(val)((...params) => ctx[name](...params), ...params);
 			}

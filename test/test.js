@@ -234,14 +234,24 @@ describe("ppipe", function() {
 
 	it("should be able to switch context by using 'with'", () => {
 		const startVal = new Test(5);
-		const res = ppipe(startVal)
+		ppipe(startVal)
 			.square()
 			.increment()
 			.with(new Test(9))
 			.add()
 			.with(new Test(1))
-			.doWeirdStuff(_.value, _.value).val;
-		assert.equal(res, 485);
+			.doWeirdStuff(_.value, _.value)
+			.with(assert)
+			.equal(_, 485);
+		const secondStartVal = new Test(5);
+		const res = ppipe(secondStartVal)
+			.square()
+			.increment()
+			.with(new Test(9))
+			.add()
+			.with(new Test(1))
+			.doWeirdStuff(_.value, _.value);
+		assert.equal(res.val, 485);
 	});
 
 	it("should keep the context gained with 'with' after a 'pipe'", () => {
