@@ -264,6 +264,16 @@ describe("ppipe", function() {
 			.with(new Test(1))
 			.pipe(Test.prototype.doWeirdStuff, _.value, _.value).val;
 		assert.equal(res, 485);
+
+		const secondStartVal = new Test(5);
+		const res2 = ppipe(secondStartVal)
+			.square()
+			.increment()
+			.with(new Test(9))
+			.add()
+			.with(new Test(1))
+			.pipe(secondStartVal.doWeirdStuff, _.value, _.value).val;
+		assert.equal(res2, 485);
 	});
 });
 
