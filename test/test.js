@@ -137,12 +137,46 @@ describe("ppipe", function() {
 		);
 	});
 
+	it("should be able to insert promise values more than once", function() {
+		return ppipe(message)(doubleSay)(delay(quote))(
+			delay(join),
+			_,
+			"test",
+			_,
+			_,
+			_,
+			"test"
+		)(delay(exclaim))(exclaim).then(res =>
+			assert.equal(
+				'"hello, hello", test, "hello, hello", "hello, hello", "hello, hello", test!!',
+				res
+			)
+		);
+	});
+
+	it("should be able to insert selected properties from promise values more than once", function() {
+		return ppipe(message)
+			.pipe(doubleSay)
+			.pipe(delay(quote))
+			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
+			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
+			.pipe(delay(exclaim))
+			.pipe(exclaim)
+			.then(res =>
+				assert.equal(
+					'"hello, hello", "hello, hello", "hello, hello", "HELLO, HELLO"!!',
+					res
+				)
+			);
+	});
+
 	it("should be able to access result prototype methods", function() {
-		return ppipe([1, 2, 3]).map(i => i + 1)(x =>
-			x.reduce((x, y) => x + y, 0)
-		).then(res => {
-			return assert.equal(9, res);
-		});
+		return ppipe([1, 2, 3])
+			.map(i => i + 1)
+			.pipe(x => x.reduce((x, y) => x + y, 0))
+			.then(res => {
+				return assert.equal(9, res);
+			});
 	});
 
 	it("should be able to revert to chaining and back from prototype methods", function() {
@@ -151,8 +185,75 @@ describe("ppipe", function() {
 			ppipe("dummy")(() => [1, 2, 3])
 				.map(i => i + 1)
 				/*reduce: 9, divide: 9/3 == 3*/
-				.reduce((x, y) => x + y, 0)(divide, _, 3).then(x => assert.equal(3, x))
+				.reduce((x, y) => x + y, 0)
+				.pipe(divide, _, 3)
+				.then(x => assert.equal(3, x))
 		);
+	});
+
+	it("should return itself via .pipe", function() {
+		const divide = (x, y) => x / y;
+		return (
+			ppipe("dummy")(() => [1, 2, 3])
+				.map(i => i + 1)
+				/*reduce: 9, divide: 9/3 == 3*/
+				.reduce((x, y) => x + y, 0)
+				.pipe(divide, _, 3)
+				.then(x => assert.equal(3, x))
+		);
+	});
+
+	it("should return undefined when a prop or method does not exist", () =>
+		assert.equal(
+			undefined,
+			ppipe("dummy")(() => [1, 2, 3])
+				.map(i => i + 1)
+				.reduce((x, y) => x + y, 0).doesntExist
+		));
+
+	class Test {
+		constructor(initial) {
+			this.value = initial;
+		}
+		increment() {
+			this.value = this.value + 1;
+			return this;
+		}
+		square() {
+			this.value = this.value * this.value;
+			return this;
+		}
+		add(x) {
+			this.value = this.value + x.value;
+			return this;
+		}
+		doWeirdStuff(x, y) {
+			return this.value * 100 + x * 10 + y;
+		}
+	}
+
+	it("should be able to switch context by using 'with'", () => {
+		const startVal = new Test(5);
+		const res = ppipe(startVal)
+			.square()
+			.increment()
+			.with(new Test(9))
+			.add()
+			.with(new Test(1))
+			.doWeirdStuff(_.value, _.value).val;
+		assert.equal(res, 485);
+	});
+
+	it("should keep the context gained with 'with' after a 'pipe'", () => {
+		const startVal = new Test(5);
+		const res = ppipe(startVal)
+			.square()
+			.increment()
+			.with(new Test(9))
+			.add()
+			.with(new Test(1))
+			.pipe(Test.prototype.doWeirdStuff, _.value, _.value).val;
+		assert.equal(res, 485);
 	});
 });
 

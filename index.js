@@ -2,45 +2,83 @@ function isPromise(val) {
 	return val && typeof val.then === "function";
 }
 
-const placeHolder = Symbol();
+class Placeholder {
+	constructor(prop) {
+		this.prop = prop;
+	}
+	extractValue(val) {
+		if (typeof this.prop === "undefined") {
+			return val;
+		}
+		return val[this.prop];
+	}
+}
 
-function ppipe(val) {
+function findIndex(params) {
+	for (let i = params.length - 1; i >= 0; i--) {
+		if (params[i] instanceof Placeholder) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function ppipe(val, thisVal) {
 	const promised = Promise.resolve(val);
 	const pipe = function(fn, ...params) {
 		if (!fn) {
 			return val;
 		}
-		const plHoldrIdx = params.indexOf(placeHolder);
-		const plHoldrExists = plHoldrIdx >= 0;
-		const argumentInsPos = plHoldrExists ? plHoldrIdx : params.length;
 		const callResultFn = value => {
-			params.splice(argumentInsPos, plHoldrExists ? 1 : 0, value);
-			return fn(...params);
+			let replacedPlaceHolder = false;
+			while (true) {
+				const plHoldrIdx = findIndex(params);
+				if (plHoldrIdx === -1) break;
+				replacedPlaceHolder = true;
+				const curPlHolder = params[plHoldrIdx];
+				params.splice(plHoldrIdx, 1, curPlHolder.extractValue(value));
+			}
+			if (!replacedPlaceHolder) {
+				params.splice(params.length, 0, value);
+			}
+			return fn.call(thisVal, ...params);
 		};
 		const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
 		return ppipe(res);
 	};
-	pipe.val = val;
 	return new Proxy(pipe, {
 		get(target, name) {
-			let res;
 			if (!!val[name]) {
-				return typeof val[name] === "function"
-					? (...params) => ppipe(val[name].apply(val, params))
-					: val[name];
+				if (typeof val[name] !== "function") {
+					return val[name];
+				}
+				const ctx = !!thisVal ? thisVal : val;
+				return (...params) =>
+					ppipe(val)((...params) => ctx[name](...params), ...params);
 			}
-			if (!!promised[name]) {
-				return typeof promised[name] === "function"
-					? promised[name].bind(promised)
-					: promised[name];
+			if (["then", "catch"].includes(name)) {
+				return (...params) => promised[name](...params);
 			}
 			if (name === "val") {
 				return val;
+			}
+			if (name === "with") {
+				return ctx => ppipe(val, ctx);
+			}
+			if (name === "pipe") {
+				return ppipe(val, thisVal);
 			}
 		}
 	});
 }
 
-ppipe._ = placeHolder;
+ppipe._ = new Proxy(new Placeholder(), {
+	get(target, name) {
+		if (name === "extractValue") {
+			return (...params) => target.extractValue(...params);
+		}
+		return new Placeholder(name);
+	}
+});
 
 module.exports = ppipe;
