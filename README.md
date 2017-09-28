@@ -123,7 +123,9 @@ await ppipe(1)
 await ppipe(1)
   .pipe(add, 1)
   .pipe(asyncComplexDouble)
-  .result() //promises will be unboxed and properties will be returned as getter functions
+  //promises will be unboxed and properties will be returned as getter functions
+  //the methods will be available in the chain as well, as shown in the next example
+  .result()
   .pipe(square)
   .pipe(divide, _, 8)
   .pipe(add, 1); //3
@@ -142,7 +144,7 @@ async function advancedDouble(x){
 }
 ```
 
-No problem:
+There you go:
 
 ```javascript
 await ppipe(1)
@@ -158,8 +160,8 @@ await ppipe(1)
 
 ### .with(ctx)
 
-Calls the following function in chain with the given `this` value (ctx). The chain can be after
-calling with also continued with the methods from the ctx.
+Calls the following function in chain with the given `this` value (ctx). After calling `.with` the
+chain can be continued with the methods from the ctx.
 
 ```javascript
 class Example {
