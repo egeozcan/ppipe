@@ -9,59 +9,149 @@ await in the chained functions.
 
 `npm install ppipe`
 
-## All features at a glance
+## Problems ppipe solves
+
+Let's assume you have these functions:
 
 ```javascript
-
-//this special object is a placeholder for the incoming value from the previous function in the chain
-const _ = ppipe._;
 const add = (x, y) => x + y;
-const double = x => x + x;
 const square = x => x * x;
 const divide = (x, y) => x / y;
+const double = x => x + x;
+```
 
+How do you pass the results from one to another?
+
+```javascript
+  //good old single line solution
+  add(divide(square(double(add(1, 1))), 8), 1);
+  //try to get creative with variable names?
+  const incremented = add(1, 1);
+  const doubled = double(incremented);
+  //...
+```
+
+An ideal solution would have been having a pipe operator (|>) but we don't have it. Here is
+where ppipe comes in.
+
+```javascript
 ppipe(1)
   (add, 1)
   (double)
   (square)
-  (divide, _, 8) //order of arguments can be manipulated
+  //order of arguments can be manipulated using the _ property of ppipe function
+  //the result of the previous function is inserted to its place if it exists in the arguments
+  //it can also occur more than once if you want to pass the same parameter more than once
+  (divide, ppipe._, 8)
   (add, 1)(); // 3
-
-const repeat = x => [x, x].join(", ");
-const quote = x => ['"', x, '"'].join('');
-const join = (x, y, z) => [x, y, z].join(" ");
-const exclaim = x => x + "!";
-/*for example's sake, just wraps the fn in a promise
-which resolves with the returned value after a 10ms delay*/
-const delay = fn => (...args) =>
-	new Promise(resolve => setTimeout(() => resolve(fn.apply(null, args)), 10));
-const delayedQuote = delay(quote);
-const delayedJoin = delay(join);
-const delayedExclaim = delay(exclaim);
-
-ppipe("hello")
-  (repeat)
-  //mixing it up with async functions
-  (delayedQuote)
-  //the result from the previous function will be the last argument to the next if there is no placeholder
-  (delayedJoin, "I shouted")
-  (join, "and suddenly", _, "without thinking")
-  (delayedExclaim)
-  //'and suddenly I shouted "hello, hello"  without thinking!!'
-  (exclaim).then(res => console.log(res));
-
-ppipe("hello")(repeat)(exclaim)(); //"hello, hello!"
 ```
 
-## New in v1.2.0: Access prototype methods and properties from the chain!
+If that is too lisp-y, you can also use ".pipe".
 
 ```javascript
+const _ = ppipe._; //to reduce eyesore
+ppipe(1)
+  .pipe(add, 1)
+  .pipe(double)
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1)(); // 3
+```
 
-const divide = (x, y) => x / y;
-ppipe([1, 2, 3])
-  .map(i => i + 1)/*[2, 3, 4]*/.reduce((x, y) => x + y, 0)/*9*/(divide, _, 3)/*3*/.then(res => {
-  return assert.equal(3, res);
-});
+And then you receive some new "requirements", which end up making the "double" function async...
+
+```javascript
+async function asyncDouble(x){
+  const result = x * 2;
+  await someAPICall(result);
+  return result;
+}
+```
+
+Here are the changes you need to make:
+
+```javascript
+await ppipe(1)
+  .pipe(add, 1)
+  .pipe(asyncDouble)
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1); //3 (you can also use .then and .catch)
+```
+
+Yes, ppipe automatically turns the end result into a promise, if one or more functions in the 
+chain return a promise. It also waits for the resolution and passes the unwrapped value to the 
+next function. You can also catch the errors with .catch like a standard promise or use
+try/catch in an async function. You meet the requirements and keep the code tidy.
+
+For consistency, the .then and .catch methods are always available, so you don't have to care if
+any function in the chain is async as long as you use those.
+
+So, later you receive some new "requirements", which make our now infamous double function return
+an object:
+
+```javascript
+async function asyncComplexDouble(x){
+  const result = x * 2;
+  const someInfo = await someAPICall(result);
+  return { result, someInfo };
+}
+```
+
+Still not a problem:
+
+```javascript
+await ppipe(1)
+  .pipe(add, 1)
+  .pipe(asyncComplexDouble)
+  .pipe(square, _.result)
+  //pipe._ is a proxy which saves the property accesses to pluck the prop from the previous
+  //function's result later
+  .pipe(divide, _, 8)
+  .pipe(add, 1); //3
+  
+//well, if you think that might not be clear, you can write it like this, too
+await ppipe(1)
+  .pipe(add, 1)
+  .pipe(asyncComplexDouble)
+  .pipe(x => x.result)
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1); //3
+  
+//this also works
+await ppipe(1)
+  .pipe(add, 1)
+  .pipe(asyncComplexDouble)
+  .result() //promises will be unboxed and properties will be returned as getter functions
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1); //3
+```
+
+Let's go one step further; what if you need to access a method from the result?
+
+```javascript
+async function advancedDouble(x){
+  const result = x * 2;
+  const someInfo = await someAPICall(result);
+  return { 
+    getResult() { return result }, 
+    someInfo 
+  };
+}
+```
+
+No problem:
+
+```javascript
+const res = await ppipe(1)
+  .pipe(add, 1)
+  .pipe(advancedDouble)
+  .getResult()
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1); //3
 ```
 
 Look at the test/test.js for more examples.

@@ -23,10 +23,12 @@ function findIndex(params) {
 	return -1;
 }
 
-function ppipe(val, thisVal) {
-	const promised = Promise.resolve(val);
+function ppipe(val, thisVal, err) {
 	const pipe = function(fn, ...params) {
 		if (!fn) {
+			if (!!err) {
+				throw err;
+			}
 			return val;
 		}
 		const callResultFn = value => {
@@ -43,34 +45,64 @@ function ppipe(val, thisVal) {
 			}
 			return fn.call(thisVal, ...params);
 		};
-		const res = isPromise(val) ? val.then(callResultFn) : callResultFn(val);
-		return ppipe(res);
+		let res;
+		if (isPromise(val)) {
+			res = !!err ? Promise.reject(err) : val.then(callResultFn);
+		} else {
+			try {
+				res = !!err ? undefined : callResultFn(val);
+			} catch (e) {
+				err = e;
+			}
+		}
+		return ppipe(res, undefined, err);
 	};
 	return new Proxy(pipe, {
 		get(target, name) {
+			switch (name) {
+				case "then":
+				case "catch":
+					const res = !!err ? Promise.reject(err) : Promise.resolve(val);
+					return res[name].bind(res);
+				case "val":
+					if (!!err) {
+						throw err;
+					}
+					return val;
+				case "with":
+					return ctx => ppipe(val, ctx, err);
+				case "pipe":
+					return ppipe(val, thisVal, err);
+			}
+			if (isPromise(val)) {
+				return (...params) =>
+					ppipe(val, thisVal, err)(
+						x => (typeof x[name] === "function" ? x[name](...params) : x[name])
+					);
+			}
 			if (
 				typeof val[name] !== "undefined" ||
 				(!!thisVal && typeof thisVal[name] === "function")
 			) {
 				const ctx = !!thisVal ? thisVal : val;
-				if (typeof ctx[name] !== "function") {
-					return ctx[name];
-				}
 				return (...params) =>
-					ppipe(val)((...params) => ctx[name](...params), ...params);
+					ppipe(val, thisVal, err)(
+						(...replacedParams) =>
+							typeof ctx[name] !== "function"
+								? ctx[name]
+								: !!thisVal
+									? ctx[name](...replacedParams)
+									: ctx[name](...params),
+						...params
+					);
 			}
-			if (["then", "catch"].includes(name)) {
-				return (...params) => promised[name](...params);
+			if (!!pipe[name]) {
+				if (typeof pipe[name] !== "function") {
+					return pipe[name];
+				}
+				return pipe[name].bind(pipe);
 			}
-			if (name === "val") {
-				return val;
-			}
-			if (name === "with") {
-				return ctx => ppipe(val, ctx);
-			}
-			if (name === "pipe") {
-				return ppipe(val, thisVal);
-			}
+			return (...params) => ppipe(val, thisVal, err)(x => x, ...params);
 		}
 	});
 }

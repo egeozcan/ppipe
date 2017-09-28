@@ -170,6 +170,71 @@ describe("ppipe", function() {
 			);
 	});
 
+	it("should be awaitable", async function() {
+		const res = await ppipe(message)
+			.pipe(doubleSay)
+			.pipe(delay(quote))
+			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
+			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
+			.pipe(delay(exclaim))
+			.pipe(exclaim);
+		assert.equal(
+			'"hello, hello", "hello, hello", "hello, hello", "HELLO, HELLO"!!',
+			res
+		);
+	});
+
+	it("should pass the errors when rejected", function() {
+		let caught = false;
+		return ppipe(message)
+			.pipe(doubleSay)
+			.pipe(delay(quote))
+			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
+			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
+			.pipe(x => Promise.reject(new Error("oh noes")))
+			.pipe(delay(exclaim))
+			.pipe(exclaim)
+			.catch(x => {
+				caught = true;
+			})
+			.then(() => assert(caught, true));
+	});
+
+	it("should pass the errors when thrown", function() {
+		let caught = false;
+		return ppipe(message)
+			.pipe(doubleSay)
+			.pipe(delay(quote))
+			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
+			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
+			.pipe(x => {
+				throw new Error("oh noes");
+			})
+			.someMethodOfThePotentialResultIWantedToCallIfThereWasntAnError()
+			.pipe(delay(exclaim))
+			.pipe(exclaim)
+			.catch(x => {
+				caught = true;
+			})
+			.then(() => assert(caught, true));
+	});
+
+	it("should have catchable async errors", function() {
+		let caught = false;
+		try {
+			ppipe(message)
+				.pipe(doubleSay)
+				.pipe(x => {
+					throw new Error("oh noes");
+				})
+				.someMethodOfThePotentialResultIWantedToCallIfThereWasntAnError()
+				.pipe(delay(exclaim));
+		} catch (error) {
+			caught = true;
+		}
+		assert(caught, true);
+	});
+
 	it("should be able to access result prototype methods", function() {
 		return ppipe([1, 2, 3])
 			.map(i => i + 1)
@@ -191,6 +256,15 @@ describe("ppipe", function() {
 		);
 	});
 
+	it("should be able to access properties of the result", function() {
+		const divide = (x, y) => x / y;
+		return ppipe("dummy")(() => [1, 2, 3])
+			.map(i => i + 1)
+			.length()
+			.pipe(divide, _, 3)
+			.then(x => assert.equal(1, x));
+	});
+
 	it("should return itself via .pipe", function() {
 		const divide = (x, y) => x / y;
 		return (
@@ -202,14 +276,6 @@ describe("ppipe", function() {
 				.then(x => assert.equal(3, x))
 		);
 	});
-
-	it("should return undefined when a prop or method does not exist", () =>
-		assert.equal(
-			undefined,
-			ppipe("dummy")(() => [1, 2, 3])
-				.map(i => i + 1)
-				.reduce((x, y) => x + y, 0).doesntExist
-		));
 
 	class Test {
 		constructor(initial) {
