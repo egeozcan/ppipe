@@ -1,13 +1,14 @@
-function isPromise(val) {
-	return val && typeof val.then === "function";
-}
+const isPromise = val => val && typeof val.then === "function";
+const isFn = val => typeof val === "function";
+const isUndef = val => typeof val === "undefined";
+const truthy = val => !isUndef(val) && val !== null;
 
 class Placeholder {
 	constructor(prop) {
 		this.prop = prop;
 	}
 	extractValue(val) {
-		if (typeof this.prop === "undefined") {
+		if (isUndef(this.prop)) {
 			return val;
 		}
 		return val[this.prop];
@@ -26,7 +27,7 @@ function findIndex(params) {
 function ppipe(val, thisVal, err) {
 	const pipe = function(fn, ...params) {
 		if (!fn) {
-			if (!!err) {
+			if (truthy(err)) {
 				throw err;
 			}
 			return val;
@@ -47,10 +48,10 @@ function ppipe(val, thisVal, err) {
 		};
 		let res;
 		if (isPromise(val)) {
-			res = !!err ? Promise.reject(err) : val.then(callResultFn);
+			res = truthy(err) ? Promise.reject(err) : val.then(callResultFn);
 		} else {
 			try {
-				res = !!err ? undefined : callResultFn(val);
+				res = truthy(err) ? undefined : callResultFn(val);
 			} catch (e) {
 				err = e;
 			}
@@ -62,10 +63,10 @@ function ppipe(val, thisVal, err) {
 			switch (name) {
 				case "then":
 				case "catch":
-					const res = !!err ? Promise.reject(err) : Promise.resolve(val);
-					return res[name].bind(res);
+					const res = truthy(err) ? Promise.reject(err) : Promise.resolve(val);
+					return (...params) => res[name](...params);
 				case "val":
-					if (!!err) {
+					if (truthy(err)) {
 						throw err;
 					}
 					return val;
@@ -77,30 +78,30 @@ function ppipe(val, thisVal, err) {
 			if (isPromise(val)) {
 				return (...params) =>
 					ppipe(val, thisVal, err)(
-						x => (typeof x[name] === "function" ? x[name](...params) : x[name])
+						x => (isFn(x[name]) ? x[name](...params) : x[name])
 					);
 			}
 			if (
-				typeof val[name] !== "undefined" ||
-				(!!thisVal && typeof thisVal[name] === "function")
+				!isUndef(val[name]) ||
+				(truthy(thisVal) && typeof thisVal[name] === "function")
 			) {
-				const ctx = !!thisVal ? thisVal : val;
+				const ctx = truthy(thisVal) ? thisVal : val;
 				return (...params) =>
 					ppipe(val, thisVal, err)(
 						(...replacedParams) =>
-							typeof ctx[name] !== "function"
+							!isFn(ctx[name])
 								? ctx[name]
-								: !!thisVal
+								: truthy(thisVal)
 									? ctx[name](...replacedParams)
 									: ctx[name](...params),
 						...params
 					);
 			}
-			if (!!pipe[name]) {
-				if (typeof pipe[name] !== "function") {
+			if (truthy(pipe[name])) {
+				if (isFn(pipe[name])) {
 					return pipe[name];
 				}
-				return pipe[name].bind(pipe);
+				return (...params) => pipe[name](...params);
 			}
 			return (...params) => ppipe(val, thisVal, err)(x => x, ...params);
 		}
