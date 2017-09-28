@@ -145,7 +145,7 @@ async function advancedDouble(x){
 No problem:
 
 ```javascript
-const res = await ppipe(1)
+await ppipe(1)
   .pipe(add, 1)
   .pipe(advancedDouble)
   .getResult()
@@ -153,5 +153,29 @@ const res = await ppipe(1)
   .pipe(divide, _, 8)
   .pipe(add, 1); //3
 ```
+
+## Additional Methods / Properties
+
+### .with(ctx)
+
+Calls the following function in chain with the given `this` value (ctx). The chain can be after
+calling with also continued with the methods from the ctx.
+
+```javascript
+class Example {
+  constructor(myInt) {
+    this.foo = Promise.resolve(myInt);
+  }
+  addToFoo(x) {
+    return this.foo.then(foo => foo + x);
+  }
+}
+await ppipe(10).with(new Example(5)).addToFoo(_); //15
+```
+
+### .val
+
+Gets the current value from the chain. Will be a promise if any function in the chain returns a
+promise. Calling the chain with no parameters achieves the same result.
 
 Look at the test/test.js for more examples.

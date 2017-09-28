@@ -101,6 +101,23 @@ describe("check readme", function() {
 			.pipe(add, 1);
 		assert.equal(res2, 3);
 	});
-});
 
-//ppipe("hello")(doubleSay)(capitalize)(join, "ok", _, "computer")(exclaim).val
+	it("sixth example", async function() {
+		class Example {
+			constructor(myInt) {
+				this.foo = Promise.resolve(myInt);
+			}
+			addToFoo(x) {
+				return this.foo.then(foo => foo + x);
+			}
+		}
+		const res = await ppipe(10)
+			.with(new Example(5))
+			.addToFoo(_);
+		assert.equal(res, 15);
+		const res2 = await ppipe(10)
+			.with(new Example(5))
+			.addToFoo();
+		assert.equal(res2, 15);
+	});
+});
