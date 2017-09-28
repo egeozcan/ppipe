@@ -1,5 +1,5 @@
-const isPromise = val => val && typeof val.then === "function";
 const isFn = val => typeof val === "function";
+const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
 
@@ -81,10 +81,7 @@ function ppipe(val, thisVal, err) {
 						x => (isFn(x[name]) ? x[name](...params) : x[name])
 					);
 			}
-			if (
-				!isUndef(val[name]) ||
-				(truthy(thisVal) && typeof thisVal[name] === "function")
-			) {
+			if (!isUndef(val[name]) || (truthy(thisVal) && isFn(thisVal[name]))) {
 				const ctx = truthy(thisVal) ? thisVal : val;
 				return (...params) =>
 					ppipe(val, thisVal, err)(
