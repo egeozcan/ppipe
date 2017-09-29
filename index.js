@@ -58,7 +58,7 @@ function ppipe(val, thisVal, err) {
 		}
 		return ppipe(res, undefined, err);
 	};
-	return new Proxy(pipe, {
+	const piped = new Proxy(pipe, {
 		get(target, name) {
 			switch (name) {
 				case "then":
@@ -73,18 +73,16 @@ function ppipe(val, thisVal, err) {
 				case "with":
 					return ctx => ppipe(val, ctx, err);
 				case "pipe":
-					return ppipe(val, thisVal, err);
+					return piped;
 			}
 			if (isPromise(val)) {
 				return (...params) =>
-					ppipe(val, thisVal, err)(
-						x => (isFn(x[name]) ? x[name](...params) : x[name])
-					);
+					piped(x => (isFn(x[name]) ? x[name](...params) : x[name]));
 			}
 			if (!isUndef(val[name]) || (truthy(thisVal) && isFn(thisVal[name]))) {
 				const ctx = truthy(thisVal) ? thisVal : val;
 				return (...params) =>
-					ppipe(val, thisVal, err)(
+					piped(
 						(...replacedParams) =>
 							!isFn(ctx[name])
 								? ctx[name]
@@ -100,9 +98,10 @@ function ppipe(val, thisVal, err) {
 				}
 				return (...params) => pipe[name](...params);
 			}
-			return (...params) => ppipe(val, thisVal, err)(x => x, ...params);
+			return (...params) => piped(x => x, ...params);
 		}
 	});
+	return piped;
 }
 
 ppipe._ = new Proxy(new Placeholder(), {
