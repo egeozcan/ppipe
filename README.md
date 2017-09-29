@@ -194,7 +194,7 @@ Clone the repository, install the dev dependencies and run the npm test command.
 
 ### License
  
-MIT
+[ISC](https://en.wikipedia.org/wiki/ISC_license) (Very similar to MIT)
 
 ### Hostility towards anyone trying to help by reporting bugs or asking questions
 
