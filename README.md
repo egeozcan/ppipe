@@ -58,7 +58,8 @@ ppipe(1)
   .pipe(add, 1)(); // 3
 ```
 
-And then you receive some new "requirements", which end up making the "double" function async...
+And then you receive some new "requirements", which end up making the "double" function
+async...
 
 ```javascript
 async function asyncDouble(x){
@@ -84,11 +85,11 @@ chain return a promise. It also waits for the resolution and passes the unwrappe
 next function. You can also catch the errors with .catch like a standard promise or use
 try/catch in an async function. You meet the requirements and keep the code tidy.
 
-For consistency, the .then and .catch methods are always available, so you don't have to care if
-any function in the chain is async as long as you use those.
+For consistency, the .then and .catch methods are always available, so you don't have to care
+if any function in the chain is async as long as you use those.
 
-So, later you receive some new "requirements", which make our now infamous double function return
-an object:
+So, later you receive some new "requirements", which make our now infamous double function 
+return an object:
 
 ```javascript
 async function asyncComplexDouble(x){
@@ -160,8 +161,8 @@ await ppipe(1)
 
 ### .with(ctx)
 
-Calls the following function in chain with the given `this` value (ctx). After calling `.with` the
-chain can be continued with the methods from the ctx.
+Calls the following function in chain with the given `this` value (ctx). After calling `.with`
+the chain can be continued with the methods from the ctx.
 
 ```javascript
 class Example {
@@ -175,9 +176,43 @@ class Example {
 await ppipe(10).with(new Example(5)).addToFoo(_); //15
 ```
 
+Look at the test/test.js for more examples.
+
 ### .val
 
 Gets the current value from the chain. Will be a promise if any function in the chain returns a
 promise. Calling the chain with no parameters achieves the same result.
 
-Look at the test/test.js for more examples.
+## Testing
+
+Clone the repository, install the dev dependencies and run the npm test command.
+
+`npm install`
+`npm test`
+
+## Contributing
+
+### License
+ 
+MIT
+
+### Hostility towards anyone trying to help by reporting bugs or asking questions
+
+None.
+
+### Pull requests?
+
+Who doesn't love them?
+
+## Caveats
+
+* This library was not written with performance in mind. So, it makes next to no sense to use
+it in, say, a tight loop. Use in a web-server should be fine as long as you don't have tight
+response-time requirements. General rule of thumb: Test it before putting it into prod. There
+are a lot of tests written for ppipe but none of them measure performance. I may improve the
+performance in the future (some low-hanging fuits) but I'd rather avoid making any guarantees.
+
+* It uses ES6 Proxies to do its magic. Proxies are not back-portable. 1.x.x versions of ppipe
+didn't use proxies. So you can try using an older version with a transpiler if evergreen sounds
+alien to you.
+
