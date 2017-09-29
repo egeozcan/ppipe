@@ -71,7 +71,10 @@ function ppipe(val, thisVal, err) {
 					}
 					return val;
 				case "with":
-					return ctx => ppipe(val, ctx, err);
+					return ctx => {
+						thisVal = ctx;
+						return piped;
+					};
 				case "pipe":
 					return piped;
 			}
