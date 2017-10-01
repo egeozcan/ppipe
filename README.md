@@ -210,7 +210,7 @@ Who doesn't love them?
 it in, say, a tight loop. Use in a web-server should be fine as long as you don't have tight
 response-time requirements. General rule of thumb: Test it before putting it into prod. There
 are a lot of tests written for ppipe but none of them measure performance. I may improve the
-performance in the future (some low-hanging fuits) but I'd rather avoid making any guarantees.
+performance in the future (some low-hanging fruits) but I'd rather avoid making any guarantees.
 
 * It uses ES6 Proxies to do its magic. Proxies are not back-portable. 1.x.x versions of ppipe
 didn't use proxies. So you can try using an older version with a transpiler if evergreen sounds
