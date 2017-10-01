@@ -2,27 +2,15 @@ const isFn = val => typeof val === "function";
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
-
-class Placeholder {
-	constructor(prop) {
-		this.prop = prop;
-	}
-	extractValue(val) {
-		if (isUndef(this.prop)) {
-			return val;
-		}
-		return val[this.prop];
-	}
-}
-
-function findIndex(params) {
+const getProp = (obj, prop) => (isUndef(prop) ? obj : obj[prop]);
+const findIndex = params => {
 	for (let i = params.length - 1; i >= 0; i--) {
 		if (params[i] instanceof Placeholder) {
 			return i;
 		}
 	}
 	return -1;
-}
+};
 
 function ppipe(val, thisVal, err) {
 	const pipe = function(fn, ...params) {
@@ -35,11 +23,13 @@ function ppipe(val, thisVal, err) {
 		const callResultFn = value => {
 			let replacedPlaceHolder = false;
 			while (true) {
-				const plHoldrIdx = findIndex(params);
-				if (plHoldrIdx === -1) break;
+				const idx = findIndex(params);
+				if (idx === -1) break;
 				replacedPlaceHolder = true;
-				const curPlHolder = params[plHoldrIdx];
-				params.splice(plHoldrIdx, 1, curPlHolder.extractValue(value));
+				const placeholder = params[idx];
+				const replacedParam =
+					placeholder === ppipe._ ? value : getProp(value, placeholder.prop);
+				params.splice(idx, 1, replacedParam);
 			}
 			if (!replacedPlaceHolder) {
 				params.splice(params.length, 0, value);
@@ -107,11 +97,14 @@ function ppipe(val, thisVal, err) {
 	return piped;
 }
 
+class Placeholder {
+	constructor(prop) {
+		this.prop = prop;
+	}
+}
+
 ppipe._ = new Proxy(new Placeholder(), {
 	get(target, name) {
-		if (name === "extractValue") {
-			return (...params) => target.extractValue(...params);
-		}
 		return new Placeholder(name);
 	}
 });

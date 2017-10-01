@@ -341,6 +341,20 @@ describe("ppipe", function() {
 			.pipe(secondStartVal.doWeirdStuff, _.value, _.value).val;
 		assert.equal(res2, 485);
 	});
+
+	it("should not mess with the promises", async () => {
+		const startVal = new Test(5);
+		const res = await ppipe(startVal)
+			.square()
+			.increment()
+			.with(new Test(9))
+			.then(x => 10 * x.value)
+			.catch(() => {
+				throw new Error("should not be reachable");
+			});
+		const res2 = await ppipe(res).pipe((x, y) => x + y, 1);
+		assert.equal(res2, 261);
+	});
 });
 
 //ppipe("hello")(doubleSay)(capitalize)(join, "ok", _, "computer")(exclaim).val

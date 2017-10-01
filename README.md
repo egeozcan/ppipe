@@ -82,10 +82,10 @@ await ppipe(1)
 
 Yes, ppipe automatically turns the end result into a promise, if one or more functions in the 
 chain return a promise. It also waits for the resolution and passes the unwrapped value to the 
-next function. You can also catch the errors with .catch like a standard promise or use
+next function. You can also catch the errors with `.catch` like a standard promise or use
 try/catch in an async function. You meet the requirements and keep the code tidy.
 
-For consistency, the .then and .catch methods are always available, so you don't have to care
+For consistency, the `.then` and `.catch` methods are always available, so you don't have to care
 if any function in the chain is async as long as you use those.
 
 So, later you receive some new "requirements", which make our now infamous double function 
