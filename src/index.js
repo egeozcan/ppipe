@@ -3,36 +3,29 @@ const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
 const getProp = (obj, prop) => (isUndef(prop) ? obj : obj[prop]);
-const findIndex = params => {
-	for (let i = params.length - 1; i >= 0; i--) {
-		if (params[i] instanceof Placeholder) {
-			return i;
-		}
-	}
-	return -1;
-};
 
 function ppipe(val, thisVal, err) {
 	const pipe = function(fn, ...params) {
-		if (!fn) {
+		if (isUndef(fn)) {
 			if (truthy(err)) {
 				throw err;
 			}
 			return val;
 		}
+		if (!isFn(fn)) {
+			throw new Error("first parameter to a pipe should be a function");
+		}
 		const callResultFn = value => {
-			if (!isFn(fn)) {
-				throw new Error("first parameter to a pipe should be a function");
-			}
 			let replacedPlaceHolder = false;
-			for (;;) {
-				const idx = findIndex(params);
-				if (idx === -1) break;
+			for (let i = params.length; i >= 0; i--) {
+				if (!(params[i] instanceof Placeholder)) {
+					continue;
+				}
 				replacedPlaceHolder = true;
-				const placeholder = params[idx];
+				const placeholder = params[i];
 				const replacedParam =
 					placeholder === ppipe._ ? value : getProp(value, placeholder.prop);
-				params.splice(idx, 1, replacedParam);
+				params.splice(i, 1, replacedParam);
 			}
 			if (!replacedPlaceHolder) {
 				params.splice(params.length, 0, value);
