@@ -34,22 +34,19 @@ How do you pass the results from one to another?
 An ideal solution would have been having a pipe operator (|>) but we don't have it. Here is
 where ppipe comes in.
 
+*Order of arguments can be manipulated using the _ property of ppipe function. The result of
+the previous function is inserted to its place if it exists in the arguments. It can also
+occur more than once if you want to pass the same parameter more than once.*
+
 ```javascript
-ppipe(1)
-  (add, 1)
-  (double)
-  (square)
-  //order of arguments can be manipulated using the _ property of ppipe function
-  //the result of the previous function is inserted to its place if it exists in the arguments
-  //it can also occur more than once if you want to pass the same parameter more than once
-  (divide, ppipe._, 8)
-  (add, 1)(); // 3
+const ppipe = require("ppipe");
+const _ = ppipe._;
+ppipe(1)(add, 1)(double)(square)(divide, _, 8)(add, 1)(); // 3
 ```
 
 If that is too lisp-y, you can also use ".pipe".
 
 ```javascript
-const _ = ppipe._; //to reduce eyesore
 ppipe(1)
   .pipe(add, 1)
   .pipe(double)
