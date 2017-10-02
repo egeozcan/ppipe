@@ -105,9 +105,9 @@ Still not a problem:
 await ppipe(1)
   .pipe(add, 1)
   .pipe(asyncComplexDouble)
+  //pipe._ is also a proxy which saves the property accesses to pluck the prop from the
+  //previous function's result later
   .pipe(square, _.result)
-  //pipe._ is a proxy which saves the property accesses to pluck the prop from the previous
-  //function's result later
   .pipe(divide, _, 8)
   .pipe(add, 1); //3
   
