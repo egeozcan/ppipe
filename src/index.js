@@ -25,7 +25,7 @@ function ppipe(val, thisVal, err) {
 				throw new Error("first parameter to a pipe should be a function");
 			}
 			let replacedPlaceHolder = false;
-			while (true) {
+			for (;;) {
 				const idx = findIndex(params);
 				if (idx === -1) break;
 				replacedPlaceHolder = true;
@@ -55,9 +55,10 @@ function ppipe(val, thisVal, err) {
 		get(target, name) {
 			switch (name) {
 				case "then":
-				case "catch":
+				case "catch": {
 					const res = truthy(err) ? Promise.reject(err) : Promise.resolve(val);
 					return (...params) => res[name](...params);
+				}
 				case "val":
 					if (truthy(err)) {
 						throw err;

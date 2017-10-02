@@ -1,5 +1,5 @@
 let assert = require("chai").assert;
-let ppipe = require("../index.js");
+let ppipe = require("../src/index.js");
 
 const add = (x, y) => x + y;
 const square = x => x * x;

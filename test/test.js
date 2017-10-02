@@ -1,5 +1,7 @@
+/* eslint quotes: "off" */
+
 let assert = require("chai").assert;
-let ppipe = require("../index.js");
+let ppipe = require("../src/index.js");
 
 function doubleSay(str) {
 	return str + ", " + str;
@@ -191,10 +193,10 @@ describe("ppipe", function() {
 			.pipe(delay(quote))
 			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
 			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
-			.pipe(x => Promise.reject(new Error("oh noes")))
+			.pipe(() => Promise.reject(new Error("oh noes")))
 			.pipe(delay(exclaim))
 			.pipe(exclaim)
-			.catch(x => {
+			.catch(() => {
 				caught = true;
 			})
 			.then(() => assert(caught, true));
@@ -207,13 +209,13 @@ describe("ppipe", function() {
 			.pipe(delay(quote))
 			.pipe(x => ({ foo: x, bar: x.toUpperCase() }))
 			.pipe(delay(join), _.foo, _.foo, _.foo, _.bar)
-			.pipe(x => {
+			.pipe(() => {
 				throw new Error("oh noes");
 			})
 			.someMethodOfThePotentialResultIWantedToCallIfThereWasntAnError()
 			.pipe(delay(exclaim))
 			.pipe(exclaim)
-			.catch(x => {
+			.catch(() => {
 				caught = true;
 			})
 			.then(() => assert(caught, true));
@@ -224,7 +226,7 @@ describe("ppipe", function() {
 		try {
 			ppipe(message)
 				.pipe(doubleSay)
-				.pipe(x => {
+				.pipe(() => {
 					throw new Error("oh noes");
 				})
 				.someMethodOfThePotentialResultIWantedToCallIfThereWasntAnError()
@@ -364,5 +366,3 @@ describe("ppipe", function() {
 		assert.equal(res, 1.1);
 	});
 });
-
-//ppipe("hello")(doubleSay)(capitalize)(join, "ok", _, "computer")(exclaim).val

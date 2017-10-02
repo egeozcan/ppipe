@@ -192,7 +192,7 @@ Clone the repository, install the dev dependencies and run the npm test command.
 
 ## Contributing
 
-See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/CONTRIBUTING.md).
+See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIBUTING.md).
 
 ## Caveats
 
