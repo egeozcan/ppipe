@@ -355,6 +355,14 @@ describe("ppipe", function() {
 		const res2 = await ppipe(res).pipe((x, y) => x + y, 1);
 		assert.equal(res2, 261);
 	});
+
+	it("should support binding, applying and calling", async () => {
+		const res = await ppipe(10)
+			.call(null, x => x + 1)
+			.apply(null, [x => Promise.resolve(x)])
+			.bind(null, (x, y) => x / y)(_, 10);
+		assert.equal(res, 1.1);
+	});
 });
 
 //ppipe("hello")(doubleSay)(capitalize)(join, "ok", _, "computer")(exclaim).val

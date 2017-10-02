@@ -21,6 +21,9 @@ function ppipe(val, thisVal, err) {
 			return val;
 		}
 		const callResultFn = value => {
+			if (!isFn(fn)) {
+				throw new Error("first parameter to a pipe should be a function");
+			}
 			let replacedPlaceHolder = false;
 			while (true) {
 				const idx = findIndex(params);
@@ -67,6 +70,10 @@ function ppipe(val, thisVal, err) {
 					};
 				case "pipe":
 					return piped;
+				case "bind":
+				case "call":
+				case "apply":
+					return (...params) => pipe[name](...params);
 			}
 			if (isPromise(val)) {
 				return (...params) =>
@@ -84,12 +91,6 @@ function ppipe(val, thisVal, err) {
 									: ctx[name](...params),
 						...params
 					);
-			}
-			if (truthy(pipe[name])) {
-				if (isFn(pipe[name])) {
-					return pipe[name];
-				}
-				return (...params) => pipe[name](...params);
 			}
 			return (...params) => piped(x => x, ...params);
 		}
