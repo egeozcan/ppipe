@@ -192,17 +192,7 @@ Clone the repository, install the dev dependencies and run the npm test command.
 
 ## Contributing
 
-### License
- 
-[ISC](https://en.wikipedia.org/wiki/ISC_license) (Very similar to MIT)
-
-### Hostility towards anyone trying to help by reporting bugs or asking questions
-
-None.
-
-### Pull requests?
-
-Who doesn't love them?
+See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/CONTRIBUTING.md).
 
 ## Caveats
 
