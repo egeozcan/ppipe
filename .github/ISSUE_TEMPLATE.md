@@ -13,5 +13,5 @@
 ### Specifications
 
   - Version:
-  - Platform:
-  - Subsystem:
+  - Platform (Node, web, electron...):
+  - Platform version:
