@@ -36,6 +36,54 @@ describe("ppipe", function() {
 		assert.equal(ppipe(message)(doubleSay).val, doubleSay(message));
 	});
 
+	it("should throw if accessing val from a pipe that contains an error", function() {
+		let caught = false;
+		try {
+			ppipe(message)(() => {
+				throw new Error("foo");
+			})(doubleSay).val;
+		} catch (error) {
+			caught = error.message === "foo";
+		}
+		assert.equal(caught, true);
+	});
+
+	it("should throw if ending a pipe that contains an error", function() {
+		let caught = false;
+		try {
+			ppipe(message)(() => {
+				throw new Error("foo");
+			})(doubleSay)();
+		} catch (error) {
+			caught = error.message === "foo";
+		}
+		assert.equal(caught, true);
+	});
+
+	it("should fail promise if ending an async pipe that contains an error even when the deferred value comes later", async function() {
+		let caught = false;
+		try {
+			await ppipe(message)(() => {
+				throw new Error("foo");
+			})(() => Promise.resolve(message))(doubleSay).then(x => x);
+		} catch (error) {
+			caught = error.message === "foo";
+		}
+		assert.equal(caught, true);
+	});
+
+	it("should throw if a non-function is passed as the first argument", function() {
+		let caught = false;
+		try {
+			ppipe(message)({})(doubleSay)();
+		} catch (error) {
+			const expectedErrorMessage =
+				"first parameter to a pipe should be a function";
+			caught = error.message === expectedErrorMessage;
+		}
+		assert.equal(caught, true);
+	});
+
 	it("should correctly pass the params to the second fn", function() {
 		assert.equal(
 			ppipe(message)(doubleSay)(exclaim).val,

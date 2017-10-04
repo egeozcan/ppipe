@@ -2,7 +2,6 @@ const isFn = val => typeof val === "function";
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
-const getProp = (obj, prop) => (isUndef(prop) ? obj : obj[prop]);
 
 function ppipe(val, thisVal, err) {
 	const pipe = function(fn, ...params) {
@@ -22,9 +21,8 @@ function ppipe(val, thisVal, err) {
 					continue;
 				}
 				replacedPlaceHolder = true;
-				const placeholder = params[i];
-				const replacedParam =
-					placeholder === ppipe._ ? value : getProp(value, placeholder.prop);
+				const pholdr = params[i];
+				const replacedParam = pholdr === ppipe._ ? value : value[pholdr.prop];
 				params.splice(i, 1, replacedParam);
 			}
 			if (!replacedPlaceHolder) {
@@ -34,7 +32,7 @@ function ppipe(val, thisVal, err) {
 		};
 		let res;
 		if (isPromise(val)) {
-			res = truthy(err) ? Promise.reject(err) : val.then(callResultFn);
+			res = val.then(callResultFn);
 		} else {
 			try {
 				res = truthy(err) ? undefined : callResultFn(val);
@@ -86,7 +84,6 @@ function ppipe(val, thisVal, err) {
 						...params
 					);
 			}
-			return (...params) => piped(x => x, ...params);
 		}
 	});
 	return piped;
