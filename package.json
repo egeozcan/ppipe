@@ -4,7 +4,8 @@
 	"description": "piping without the operator support",
 	"main": "src/index.js",
 	"scripts": {
-		"test": "nyc node_modules/mocha/bin/mocha test"
+		"test":
+			"nyc --reporter=text --reporter=html node_modules/mocha/bin/mocha test"
 	},
 	"keywords": [
 		"piping",

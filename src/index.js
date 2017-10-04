@@ -69,7 +69,12 @@ function ppipe(val, thisVal, err) {
 			}
 			if (isPromise(val)) {
 				return (...params) =>
-					piped(x => (isFn(x[name]) ? x[name](...params) : x[name]));
+					piped(x => {
+						if (isUndef(x[name])) {
+							throw new TypeError(`${name} is not defined on ${x}`);
+						}
+						return isFn(x[name]) ? x[name](...params) : x[name];
+					});
 			}
 			if (!isUndef(val[name]) || (truthy(thisVal) && isFn(thisVal[name]))) {
 				const ctx = truthy(thisVal) ? thisVal : val;

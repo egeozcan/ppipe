@@ -72,6 +72,37 @@ describe("ppipe", function() {
 		assert.equal(caught, true);
 	});
 
+	it("should not touch the error as long as it exists when an undefined prop is called", async function() {
+		let caught = false;
+		try {
+			var error = new Error("oh noes");
+			await ppipe()(() => Promise.reject(error)).weCantKnowIfThisMethodExists();
+		} catch (error) {
+			caught = error.message === "oh noes";
+		}
+		assert.equal(caught, true);
+	});
+
+	it("should not continue a sync chain if a method is missing", function() {
+		let caught = false;
+		try {
+			ppipe("foo")(x => x).weKnowThisMethodIsMissing();
+		} catch (error) {
+			caught = true;
+		}
+		assert.equal(caught, true);
+	});
+
+	it("should error with missing method if no errors exist in ctx and missing method is called", async function() {
+		let caught = false;
+		try {
+			await ppipe("foo")(x => Promise.resolve(x)).weKnowThisMethodIsMissing();
+		} catch (error) {
+			caught = true;
+		}
+		assert.equal(caught, true);
+	});
+
 	it("should throw if a non-function is passed as the first argument", function() {
 		let caught = false;
 		try {
