@@ -6,7 +6,15 @@
 	"scripts": {
 		"test": "nyc node_modules/mocha/bin/mocha test"
 	},
-	"keywords": ["piping", "promise"],
+	"keywords": [
+		"piping",
+		"promise",
+		"chain",
+		"async",
+		"pipe",
+		"pipe-operator",
+		"pipes-values"
+	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/egeozcan/ppipe.git"
