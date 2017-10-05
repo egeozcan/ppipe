@@ -1,5 +1,8 @@
 # ppipe
 
+![An image that shows if build is passing](https://travis-ci.org/egeozcan/ppipe.svg?branch=master "Build Status")
+[![Coverage Status](https://coveralls.io/repos/github/egeozcan/ppipe/badge.svg?branch=master)](https://coveralls.io/github/egeozcan/ppipe?branch=master)
+
 pipes values through functions, an alternative to using the [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |> ) for ES.
 
 Supports functions returning promises too. In that case, the result of the
