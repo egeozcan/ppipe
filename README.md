@@ -1,4 +1,4 @@
-# [![AVA](logo/logo_s.png)](https://github.com/egeozcan/ppipe)
+# [![PPIPE](logo/logo_s.png)](https://github.com/egeozcan/ppipe)
 
 ![An image that shows if build is passing](https://travis-ci.org/egeozcan/ppipe.svg?branch=master "Build Status")
 [![Coverage Status](https://coveralls.io/repos/github/egeozcan/ppipe/badge.svg?branch=master)](https://coveralls.io/github/egeozcan/ppipe?branch=master)
