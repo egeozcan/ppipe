@@ -202,4 +202,5 @@ performance in the future (some low-hanging fruits) but I'd rather avoid making 
 * It uses ES6 Proxies to do its magic. Proxies are not back-portable. 1.x.x versions of ppipe
 didn't use proxies. So you can try using an older version with a transpiler if evergreen sounds
 alien to you.
-
+[Here](https://github.com/egeozcan/ppipe/blob/1888e9269be90f549d5c00002f7e800598c6d539/index.js)
+is an older stable version without value extracting and context change support.
