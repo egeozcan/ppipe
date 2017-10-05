@@ -1,7 +1,5 @@
 # ppipe
 
-![An image that shows if build is passing](https://app.codeship.com/projects/9bf82a60-8beb-0135-bd79-22e171828e0c/status?branch=master "Build Status")
-
 pipes values through functions, an alternative to using the [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |> ) for ES.
 
 Supports functions returning promises too. In that case, the result of the
