@@ -1,8 +1,10 @@
 # [![PPIPE](logo/logo_s.png)](https://github.com/egeozcan/ppipe)
 
-![An image that shows if build is passing](https://travis-ci.org/egeozcan/ppipe.svg?branch=master "Build Status")
+[![build](https://travis-ci.org/egeozcan/ppipe.svg?branch=master)](https://travis-ci.org/egeozcan/ppipe)
 [![Coverage Status](https://coveralls.io/repos/github/egeozcan/ppipe/badge.svg?branch=master)](https://coveralls.io/github/egeozcan/ppipe?branch=master)
-[![npm version](https://badge.fury.io/js/ppipe.svg)](https://badge.fury.io/js/ppipe)
+[![npm](https://img.shields.io/npm/v/ppipe.svg)](https://www.npmjs.com/package/ppipe)
+[![npm](https://img.shields.io/npm/dt/ppipe.svg)](https://www.npmjs.com/package/ppipe)
+[![license](https://img.shields.io/github/license/egeozcan/ppipe.svg)](https://github.com/egeozcan/ppipe/blob/master/LICENSE)
 
 pipes values through functions, an alternative to using the [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |> ) for ES.
 
