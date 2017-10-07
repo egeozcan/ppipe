@@ -3,7 +3,7 @@ const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
 
-const createPpipe = (...extensions) => {
+const createPpipe = (extensions = {}) => {
 	const ppipe = (val, thisVal, err) => {
 		const pipe = function(fn, ...params) {
 			if (isUndef(fn)) {
@@ -81,11 +81,16 @@ const createPpipe = (...extensions) => {
 				}
 				const fnExistsInCtx = truthy(thisVal) && isFn(thisVal[name]);
 				const valHasProp = !fnExistsInCtx && !isUndef(val[name]);
-				if (valHasProp || fnExistsInCtx) {
-					const ctx = truthy(thisVal) ? thisVal : val;
+				const extensionWithNameExists =
+					!fnExistsInCtx && !valHasProp && isFn(extensions[name]);
+				if (fnExistsInCtx || valHasProp || extensionWithNameExists) {
+					const ctx = fnExistsInCtx ? thisVal : valHasProp ? val : extensions;
 					return (...params) =>
 						piped((...replacedParams) => {
-							const newParams = truthy(thisVal) ? replacedParams : params;
+							const newParams =
+								fnExistsInCtx || extensionWithNameExists
+									? replacedParams
+									: params;
 							return !isFn(ctx[name]) ? ctx[name] : ctx[name](...newParams);
 						}, ...params);
 				}
@@ -94,7 +99,8 @@ const createPpipe = (...extensions) => {
 		return piped;
 	};
 	ppipe._ = _;
-	ppipe.extend = newExtensions => createPpipe(...extensions, ...newExtensions);
+	ppipe.extend = newExtensions =>
+		createPpipe(Object.assign(newExtensions, extensions));
 	return ppipe;
 };
 class Placeholder {
