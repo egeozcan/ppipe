@@ -159,9 +159,13 @@ await ppipe(1)
   .pipe(add, 1); //3
 ```
 
-## Additional Methods / Properties
+## Advanced Functionality
 
-### .with(ctx)
+### Chain Methods / Properties
+
+You can use these from the chain (after creating one with `ppipe(val)`).
+
+#### .with(ctx)
 
 Calls the following function in chain with the given `this` value (ctx). After calling `.with`
 the chain can be continued with the methods from the ctx.
@@ -180,10 +184,34 @@ await ppipe(10).with(new Example(5)).addToFoo(_); //15
 
 Look at the test/test.js for more examples.
 
-### .val
+#### .val
 
 Gets the current value from the chain. Will be a promise if any function in the chain returns a
 promise. Calling the chain with no parameters achieves the same result.
+
+### Extending Ppipe
+
+You can create an extended instance of ppipe via `.extend`.
+
+```javascript
+const newPipe = ppipe.extend({
+  divide (x, y) {
+    return x / y;
+  },
+  log(...params) {
+    console.log(...params);
+    return params[params.length - 1];
+  }
+});
+const res = await newPipe(10)
+  .pipe(x => x + 1)
+  .divide(_, 11)
+  .log("here is our x: ") //logs "here is our x: 1"
+  .pipe(x => x + 1) // 2
+```
+
+You can also call `.extend` on the extended ppipes. It will create a new ppipe with the new and
+existing extensions merged.
 
 ## Testing
 

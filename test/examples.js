@@ -120,4 +120,25 @@ describe("check readme", function() {
 			.addToFoo();
 		assert.equal(res2, 15);
 	});
+
+	it("seventh example", async function() {
+		let logged = false;
+		const newPipe = ppipe.extend({
+			divide(x, y) {
+				return x / y;
+			},
+			log(...params) {
+				logged = true;
+				assert.equal(params[params.length - 1], 1);
+				return params[params.length - 1];
+			}
+		});
+		const res = await newPipe(10)
+			.pipe(x => x + 1)
+			.divide(_, 11)
+			.log("here is our x: ")
+			.pipe(x => x + 1);
+		assert.equal(res, 2);
+		assert.equal(logged, true);
+	});
 });
