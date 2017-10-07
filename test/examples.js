@@ -78,12 +78,14 @@ describe("check readme", function() {
 		async function asyncComplexDouble(x) {
 			const result = x * 2;
 			const someInfo = await someAPICall(result);
-			return {
+			//go wild with deferring
+			return Promise.resolve({
 				result,
 				someInfo,
-				//go wild with deferring
-				getResultPlusAsync: y => Promise.resolve(result + y)
-			};
+				//go wilder with deferring
+				getResultPlusAsync: y =>
+					new Promise(resolve => setTimeout(() => resolve(result + y), 10))
+			});
 		}
 		const res3 = await ppipe(1)
 			.pipe(add, 1)
