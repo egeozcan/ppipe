@@ -47,7 +47,11 @@ describe("check readme", function() {
 		async function asyncComplexDouble(x) {
 			const result = x * 2;
 			const someInfo = await someAPICall(result);
-			return { result, someInfo, getResultPlus: y => result + y };
+			return {
+				result,
+				someInfo,
+				getResultPlus: y => result + y
+			};
 		}
 		const res = await ppipe(1)
 			.pipe(add, 1)
@@ -67,6 +71,31 @@ describe("check readme", function() {
 			.pipe(add, 1)
 			.pipe(add, -2.5);
 		assert.equal(11, res2);
+		assert.equal(res, add(divide(square(double(add(1, 1))), 8), 1));
+	});
+
+	it("fourth example async result", async function() {
+		async function asyncComplexDouble(x) {
+			const result = x * 2;
+			const someInfo = await someAPICall(result);
+			return {
+				result,
+				someInfo,
+				//go wild with deferring
+				getResultPlusAsync: y => Promise.resolve(result + y)
+			};
+		}
+		const res3 = await ppipe(1)
+			.pipe(add, 1)
+			.pipe(asyncComplexDouble)
+			.result()
+			.pipe(asyncComplexDouble)
+			.getResultPlusAsync(2)
+			.pipe(square)
+			.pipe(divide, _, 8)
+			.pipe(add, 1)
+			.pipe(add, -2.5);
+		assert.equal(11, res3);
 	});
 
 	it("fifth example", async function() {
