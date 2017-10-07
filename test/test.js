@@ -444,4 +444,36 @@ describe("ppipe", function() {
 			.bind(null, (x, y) => x / y)(_, 10);
 		assert.equal(res, 1.1);
 	});
+
+	it("should support extensions", async () => {
+		const newPipe = ppipe.extend({
+			assertEqAndIncrement: (x, y) => {
+				assert.equal(x, y);
+				return x + 1;
+			}
+		});
+		const res = await newPipe(10)
+			.pipe(x => x + 1)
+			.assertEqAndIncrement(_, 11);
+		assert.equal(res, 12);
+	});
+
+	it("should support re-extending an extended ppipe", async () => {
+		const newPipe = ppipe.extend({
+			assertEqAndIncrement: (x, y) => {
+				assert.equal(x, y);
+				return x + 1;
+			}
+		});
+		const newerPipe = newPipe.extend({
+			divide: (x, y) => {
+				return x / y;
+			}
+		});
+		const res = await newerPipe(10)
+			.pipe(x => x + 1)
+			.assertEqAndIncrement(_, 11)
+			.divide(_, 12);
+		assert.equal(res, 1);
+	});
 });
