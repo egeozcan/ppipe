@@ -5,6 +5,7 @@
 [![npm](https://img.shields.io/npm/v/ppipe.svg)](https://www.npmjs.com/package/ppipe)
 [![npm](https://img.shields.io/npm/dt/ppipe.svg)](https://www.npmjs.com/package/ppipe)
 [![license](https://img.shields.io/github/license/egeozcan/ppipe.svg)](https://github.com/egeozcan/ppipe/blob/master/LICENSE)
+[![DeepScan Grade](https://deepscan.io/api/projects/565/branches/916/badge/grade.svg)](https://deepscan.io/dashboard/#view=project&pid=565&bid=916)
 
 pipes values through functions, an alternative to using the [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |> ) for ES.
 
