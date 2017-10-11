@@ -243,3 +243,8 @@ didn't use proxies. So you can try using an older version with a transpiler if e
 alien to you.
 [Here](https://github.com/egeozcan/ppipe/blob/1888e9269be90f549d5c00002f7e800598c6d539/index.js)
 is an older stable version without value extracting and context change support.
+
+* ppipe is not typed. No type definition exists for TypeScript not Flow. I actually love
+TypeScript and would support it but the lack of variadic generic type parameters make it
+next to impossible to provide type definitions for ppipe.
+More can be read [here](https://github.com/Microsoft/TypeScript/issues/5453).
