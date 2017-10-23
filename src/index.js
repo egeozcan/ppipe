@@ -1,10 +1,31 @@
+// @ts-check
+
 const isFn = val => typeof val === "function";
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
 
-const createPpipe = (extensions = {}) => {
+/**
+ * Creates a pipe creator with the given extensions available in the chain
+ * @param TExt 
+ * @template TExt
+ */
+function createPpipe(extensions = {}) {
+	/**
+	 * Creates a new chain
+	 * @param {(TVal | PromiseLike<TVal>)} val 
+	 * @param {TThis} thisVal cdfgdfgd
+	 * @param {Error} err 
+	 * @template TVal, TThis
+	 */
 	const ppipe = (val, thisVal, err) => {
+		/**
+		 * Next step of the chain, callable with a function and the parameters to use
+		 * while calling it, as rest parameters (params).
+		 * @param {function(...any): TRes} fn 
+		 * @param {...any} params 
+	 	 * @template TRes
+		 */
 		const pipe = function(fn, ...params) {
 			if (isUndef(fn)) {
 				if (truthy(err)) {
@@ -31,9 +52,11 @@ const createPpipe = (extensions = {}) => {
 				}
 				return fn.call(thisVal, ...params);
 			};
+			/** @type {(TRes | PromiseLike<TRes>)} */
 			let res;
 			if (isPromise(val)) {
-				res = val.then(callResultFn);
+				const promiseVal = Promise.resolve(val);
+				res = promiseVal.then(callResultFn);
 			} else {
 				try {
 					res = truthy(err) ? undefined : callResultFn(val);
@@ -51,7 +74,8 @@ const createPpipe = (extensions = {}) => {
 						const res = truthy(err)
 							? Promise.reject(err)
 							: Promise.resolve(val);
-						return (...params) => res[name](...params);
+						return (...params) =>
+							name === "then" ? res.then(...params) : res.catch(...params);
 					}
 					case "val":
 						if (truthy(err)) {
@@ -68,7 +92,10 @@ const createPpipe = (extensions = {}) => {
 					case "bind":
 					case "call":
 					case "apply":
-						return (...params) => pipe[name](...params);
+						return (...params) => {
+							//somehow just passing the "...params" makes TS unhappy
+							return pipe[name](params[0], ...params.slice(1));
+						};
 				}
 				if (isPromise(val)) {
 					return (...params) =>
@@ -98,11 +125,13 @@ const createPpipe = (extensions = {}) => {
 		});
 		return piped;
 	};
-	ppipe._ = _;
-	ppipe.extend = newExtensions =>
-		createPpipe(Object.assign(newExtensions, extensions));
-	return ppipe;
-};
+	return Object.assign(ppipe, {
+		extend(newExtensions) {
+			return createPpipe(Object.assign(newExtensions, extensions));
+		},
+		_
+	});
+}
 class Placeholder {
 	constructor(prop) {
 		this.prop = prop;
