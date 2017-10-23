@@ -14,7 +14,7 @@ function createPpipe(extensions = {}) {
 	/**
 	 * Creates a new chain
 	 * @param {(TVal | PromiseLike<TVal>)} val 
-	 * @param {TThis} thisVal cdfgdfgd
+	 * @param {TThis} thisVal
 	 * @param {Error} err 
 	 * @template TVal, TThis
 	 */
