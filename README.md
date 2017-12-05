@@ -11,6 +11,8 @@ pipes values through functions, an alternative to using the
 [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |>
 ) for ES.
 
+[Demo available on RunKit](https://runkit.com/egeozcan/ppipe).
+
 Supports functions returning promises too. In that case, the result of the chain
 will also be a promise. This is similar to the proposed support for await in the
 chained functions.
