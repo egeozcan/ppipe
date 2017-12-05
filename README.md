@@ -241,8 +241,10 @@ See
 
 ## Changelog
 
-v2.3.0 - now supports expanding the placeholder (test: should support expanding
-the array result)
+* v2.4.0 - allow deep property extraction via the placeholder
+	(_.deeply.nested.prop) (test: should be able to extract array members)
+* v2.3.0 - now supports expanding the placeholder (..._) (test: should support
+	expanding the array result)
 
 ## Caveats
 

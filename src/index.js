@@ -2,6 +2,7 @@ const isFn = val => typeof val === "function";
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
+const getPropertyByPath = require("./getPropertyByPath");
 
 function createPpipe(extensions = {}) {
 	const ppipe = (val, thisVal, err) => {
@@ -23,7 +24,9 @@ function createPpipe(extensions = {}) {
 						continue;
 					}
 					replacedPlaceHolder = true;
-					const replacedParam = !pholdr.prop ? value : value[pholdr.prop];
+					const replacedParam = !pholdr.prop
+						? value
+						: getPropertyByPath(value, pholdr.prop);
 					pholdr.expandTarget === true
 						? params.splice(i, 1, ...replacedParam)
 						: params.splice(i, 1, replacedParam);
@@ -35,8 +38,7 @@ function createPpipe(extensions = {}) {
 			};
 			let res;
 			if (isPromise(val)) {
-				const promiseVal = Promise.resolve(val);
-				res = promiseVal.then(callResultFn);
+				res = val.then(callResultFn);
 			} else {
 				try {
 					res = truthy(err) ? undefined : callResultFn(val);
@@ -116,22 +118,26 @@ class Placeholder {
 		yield new Placeholder(this.prop, true);
 	}
 
-	constructor(prop, expandTarget = false) {
+	constructor(prop, expandTarget) {
 		this.prop = prop;
 		this.expandTarget = expandTarget;
 	}
 }
 
-const _ = new Proxy(new Placeholder(), {
-	get(target, name) {
-		if (
-			name === Symbol.iterator ||
-			Object.getOwnPropertyNames(target).includes(name)
-		) {
-			return target[name];
+const placeholderProxy = (prop = undefined, expandTarget = false) => {
+	return new Proxy(new Placeholder(prop, expandTarget), {
+		get(target, name) {
+			if (
+				name === Symbol.iterator ||
+				Object.getOwnPropertyNames(target).includes(name)
+			) {
+				return target[name];
+			}
+			return placeholderProxy([prop, name].filter(x => !!x).join("."));
 		}
-		return new Placeholder(name);
-	}
-});
+	});
+};
+
+const _ = placeholderProxy();
 
 module.exports = createPpipe();

@@ -496,4 +496,62 @@ describe("ppipe", function() {
 			.pipe(addAll, ..._.test, 4);
 		assert.equal(res, 10);
 	});
+
+	it("should support expanding the deep array property of result", async () => {
+		const addAll = (...params) => {
+			return params.reduce((a, b) => a + b, 0);
+		};
+		const res = await ppipe(1)
+			.pipe(x => ({ test: { test: [x, 2, 3] } }))
+			.pipe(addAll, ..._.test.test, 4);
+		assert.equal(res, 10);
+	});
+
+	it("should return undefined when getting not existing deep properties", async () => {
+		const res = await ppipe(1)
+			.pipe(x => ({ test: { test: [x, 2, 3] } }))
+			.pipe(x => x, _.test.test.foo.bar);
+		assert.equal(res, undefined);
+	});
+
+	it("should be able to extract array members", async () => {
+		async function asyncComplexDoubleArray(x) {
+			const result = x * 2;
+			const input = x;
+			return [await Promise.resolve(0), result, input, 20]; //some API designed by a mad scientist
+		}
+		const addAll = (...params) => {
+			return params.reduce((a, b) => a + b, 0);
+		};
+		const res = await ppipe(5)
+			.pipe(asyncComplexDoubleArray)
+			.pipe(addAll, _[1], _[2]);
+		assert.equal(res, 15);
+		const res2 = await ppipe(5)
+			.pipe(asyncComplexDoubleArray)
+			.pipe(addAll, _["[1]"], _["[2]"]);
+		assert.equal(res2, 15);
+		const res3 = await ppipe(5)
+			.pipe(asyncComplexDoubleArray)
+			.pipe(x => ({ test: x, foo: "bar" }))
+			.pipe(addAll, _["test[1]"], _.test[2], _.test["3"]);
+		assert.equal(res3, 35);
+		const res4 = await ppipe(5)
+			.pipe(asyncComplexDoubleArray)
+			.pipe(x => ({ test: () => ({ innerTest: x }), foo: "bar" }))
+			.pipe(
+				addAll,
+				_["test().innerTest[1]"],
+				_["test().innerTest"][2],
+				..._["test()"].innerTest
+			);
+		assert.equal(res4, 50);
+		const res5 = await ppipe(5)
+			.pipe(asyncComplexDoubleArray)
+			.pipe(x => ({ test: () => ({ innerTest: x }), foo: "bar" }))
+			.test()
+			.innerTest()
+			.pipe(addAll, _[1], _[2]);
+		assert.equal(res5, 15);
+	});
 });
