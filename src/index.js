@@ -1,31 +1,10 @@
-// @ts-check
-
 const isFn = val => typeof val === "function";
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
 
-/**
- * Creates a pipe creator with the given extensions available in the chain
- * @param TExt 
- * @template TExt
- */
 function createPpipe(extensions = {}) {
-	/**
-	 * Creates a new chain
-	 * @param {(TVal | PromiseLike<TVal>)} val 
-	 * @param {TThis} thisVal
-	 * @param {Error} err 
-	 * @template TVal, TThis
-	 */
 	const ppipe = (val, thisVal, err) => {
-		/**
-		 * Next step of the chain, callable with a function and the parameters to use
-		 * while calling it, as rest parameters (params).
-		 * @param {function(...any): TRes} fn 
-		 * @param {...any} params 
-	 	 * @template TRes
-		 */
 		const pipe = function(fn, ...params) {
 			if (isUndef(fn)) {
 				if (truthy(err)) {
@@ -39,20 +18,21 @@ function createPpipe(extensions = {}) {
 			const callResultFn = value => {
 				let replacedPlaceHolder = false;
 				for (let i = params.length; i >= 0; i--) {
-					if (!(params[i] instanceof Placeholder)) {
+					const pholdr = params[i];
+					if (!(pholdr instanceof Placeholder)) {
 						continue;
 					}
 					replacedPlaceHolder = true;
-					const pholdr = params[i];
-					const replacedParam = pholdr === _ ? value : value[pholdr.prop];
-					params.splice(i, 1, replacedParam);
+					const replacedParam = !pholdr.prop ? value : value[pholdr.prop];
+					pholdr.expandTarget === true
+						? params.splice(i, 1, ...replacedParam)
+						: params.splice(i, 1, replacedParam);
 				}
 				if (!replacedPlaceHolder) {
 					params.splice(params.length, 0, value);
 				}
 				return fn.call(thisVal, ...params);
 			};
-			/** @type {(TRes | PromiseLike<TRes>)} */
 			let res;
 			if (isPromise(val)) {
 				const promiseVal = Promise.resolve(val);
@@ -93,8 +73,7 @@ function createPpipe(extensions = {}) {
 					case "call":
 					case "apply":
 						return (...params) => {
-							//somehow just passing the "...params" makes TS unhappy
-							return pipe[name](params[0], ...params.slice(1));
+							return pipe[name](...params);
 						};
 				}
 				if (isPromise(val)) {
@@ -133,13 +112,24 @@ function createPpipe(extensions = {}) {
 	});
 }
 class Placeholder {
-	constructor(prop) {
+	*[Symbol.iterator]() {
+		yield new Placeholder(this.prop, true);
+	}
+
+	constructor(prop, expandTarget = false) {
 		this.prop = prop;
+		this.expandTarget = expandTarget;
 	}
 }
 
 const _ = new Proxy(new Placeholder(), {
 	get(target, name) {
+		if (
+			name === Symbol.iterator ||
+			Object.getOwnPropertyNames(target).includes(name)
+		) {
+			return target[name];
+		}
 		return new Placeholder(name);
 	}
 });

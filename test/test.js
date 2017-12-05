@@ -476,4 +476,24 @@ describe("ppipe", function() {
 			.divide(_, 12);
 		assert.equal(res, 1);
 	});
+
+	it("should support expanding the array result", async () => {
+		const addAll = (...params) => {
+			return params.reduce((a, b) => a + b, 0);
+		};
+		const res = await ppipe(1)
+			.pipe(x => [x, 2, 3])
+			.pipe(addAll, ..._, 4);
+		assert.equal(res, 10);
+	});
+
+	it("should support expanding the array property of result", async () => {
+		const addAll = (...params) => {
+			return params.reduce((a, b) => a + b, 0);
+		};
+		const res = await ppipe(1)
+			.pipe(x => ({ test: [x, 2, 3] }))
+			.pipe(addAll, ..._.test, 4);
+		assert.equal(res, 10);
+	});
 });
