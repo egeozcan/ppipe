@@ -1,4 +1,5 @@
 const isFn = val => typeof val === "function";
+const unitFn = x => x;
 const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
@@ -14,7 +15,14 @@ function createPpipe(extensions = {}) {
 				return val;
 			}
 			if (!isFn(fn)) {
-				throw new Error("first parameter to a pipe should be a function");
+				if (fn instanceof Placeholder && params.length === 0) {
+					params = [fn];
+					fn = unitFn;
+				} else {
+					throw new Error(
+						"first parameter to a pipe should be a function or a single placeholder"
+					);
+				}
 			}
 			const callResultFn = value => {
 				let replacedPlaceHolder = false;

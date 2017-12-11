@@ -514,6 +514,17 @@ describe("ppipe", function() {
 		assert.equal(res, undefined);
 	});
 
+	it("should use unit fn with no defined and a single param", async () => {
+		const res = await ppipe(1)
+			.pipe(x => ({ test: { test: [x, 2, 3] } }))
+			.pipe(_.test.test.foo.bar);
+		assert.equal(res, undefined);
+		const res2 = await ppipe(1)
+			.pipe(x => ({ test: { test: [x, 2, 3] } }))
+			.pipe(_.test.test[0]);
+		assert.equal(res2, 1);
+	});
+
 	it("should be able to extract array members", async () => {
 		async function asyncComplexDoubleArray(x) {
 			const result = x * 2;
