@@ -109,7 +109,7 @@ describe("ppipe", function() {
 			ppipe(message)({})(doubleSay)();
 		} catch (error) {
 			const expectedErrorMessage =
-				"first parameter to a pipe should be a function";
+				"first parameter to a pipe should be a function or a single placeholder";
 			caught = error.message === expectedErrorMessage;
 		}
 		assert.equal(caught, true);
