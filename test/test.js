@@ -565,4 +565,39 @@ describe("ppipe", function() {
 			.pipe(addAll, _[1], _[2]);
 		assert.equal(res5, 15);
 	});
+	it("should be able to extract promised values", async () => {
+		const getXAsync = x =>
+			new Promise(res => setTimeout(() => res({ result: x }), 1));
+		const aComplexResult = { a: { complex: getXAsync.bind(null, 2) } };
+		const res = await ppipe(aComplexResult)
+			.pipe(_.a["complex()"].result)
+			.pipe(x => x * x);
+		assert.equal(res, 4);
+		const res2 = await ppipe(aComplexResult)
+			.pipe(_.a["complex().result"])
+			.pipe(x => x * x);
+		assert.equal(res2, 4);
+		const res3 = await ppipe(aComplexResult)
+			.a()
+			.complex()
+			.result()
+			.pipe(x => x * x);
+		assert.equal(res3, 4);
+		const plainCrazyResult = {
+			a: { complex: getXAsync.bind(null, aComplexResult) }
+		};
+		const res4 = await ppipe(plainCrazyResult)
+			.a()
+			.complex()
+			.result()
+			.a()
+			.complex()
+			.result()
+			.pipe(x => x * x);
+		assert.equal(res4, 4);
+		const res5 = await ppipe(plainCrazyResult)
+			.pipe(_.a["complex()"].result.a["complex()"].result)
+			.pipe(x => x * x);
+		assert.equal(res5, 4);
+	});
 });

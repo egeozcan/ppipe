@@ -1,21 +1,33 @@
 //Mostly taken from https://stackoverflow.com/a/6491621/300011
+const isPromise = require("./lib/isPromise");
 
-module.exports = function getPropertyByPath(o, s) {
-	s = s.replace(/\[(\w+)\]/g, ".$1"); // convert indexes to properties
-	s = s.replace(/^\./, ""); // strip a leading dot
-	var a = s.split(".");
-	for (var i = 0, n = a.length; i < n; ++i) {
-		var prop = a[i];
-		var call = false;
-		if (prop.endsWith("()")) {
-			call = true;
-			prop = prop.substr(0, prop.length - 2);
-		}
-		if (prop in o) {
-			o = call ? o[prop]() : o[prop];
-		} else {
-			return;
-		}
+module.exports = function getPropertyByPath(object, accessString) {
+	// convert indexes to properties
+	accessString = accessString.replace(/\[(\w+)\]/g, ".$1");
+	// strip a leading dot
+	accessString = accessString.replace(/^\./, "");
+	const properties = accessString.split(".");
+	for (let i = 0, n = properties.length; i < n; ++i) {
+		const property = properties[i];
+		object = isPromise(object)
+			? object.then(x => getProperty(property, x))
+			: getProperty(property, object);
 	}
-	return o;
+	return object;
 };
+
+function getProperty(property, object) {
+	if (object === undefined) {
+		return;
+	}
+	let call = false;
+	if (property.endsWith("()")) {
+		call = true;
+		property = property.substr(0, property.length - 2);
+	}
+	if (property in object) {
+		return call ? object[property]() : object[property];
+	} else {
+		return;
+	}
+}

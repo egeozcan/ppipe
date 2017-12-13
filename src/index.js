@@ -1,9 +1,9 @@
-const isFn = val => typeof val === "function";
+const isFn = require("./lib/isFunction");
+const getPropertyByPath = require("./getPropertyByPath");
+const isPromise = require("./lib/isPromise");
 const unitFn = x => x;
-const isPromise = val => val && isFn(val.then);
 const isUndef = val => typeof val === "undefined";
 const truthy = val => !isUndef(val) && val !== null;
-const getPropertyByPath = require("./getPropertyByPath");
 
 function createPpipe(extensions = {}) {
 	const ppipe = (val, thisVal, err) => {
