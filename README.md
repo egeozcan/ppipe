@@ -250,30 +250,30 @@ See
 ## Caveats
 
 * This library was not written with performance in mind. So, it makes next to no
-	sense to use it in, say, a tight loop. Use in a web-server should be fine as
-	long as you don't have tight response-time requirements. General rule of
-	thumb: Test it before putting it into prod. There are a lot of tests written
-	for ppipe but none of them measure performance. I may improve the performance
-	in the future (some low-hanging fruits) but I'd rather avoid making any
-	guarantees. Well, there is one good news:
-	[Chrome team is working on performance improvements to the Proxy](https://v8project.blogspot.de/2017/10/optimizing-proxies.html)
-	which will very positively affect ppipe performance.
+  sense to use it in, say, a tight loop. Use in a web-server should be fine as
+  long as you don't have tight response-time requirements. General rule of
+  thumb: Test it before putting it into prod. There are a lot of tests written
+  for ppipe but none of them measure performance. I may improve the performance
+  in the future (some low-hanging fruits) but I'd rather avoid making any
+  guarantees. Well, there is one good news:
+  [Chrome team is working on performance improvements to the Proxy](https://v8project.blogspot.de/2017/10/optimizing-proxies.html)
+  which will very positively affect ppipe performance.
 
 * It uses ES6 Proxies to do its magic. Proxies are not back-portable. 1.x.x
-	versions of ppipe didn't use proxies. So you can try using an older version
-	with a transpiler if evergreen sounds alien to you.
-	[Here](https://github.com/egeozcan/ppipe/blob/1888e9269be90f549d5c00002f7e800598c6d539/index.js)
-	is an older stable version without value extracting and context change
-	support.
+  versions of ppipe didn't use proxies. So you can try using an older version
+  with a transpiler if evergreen sounds alien to you.
+  [Here](https://github.com/egeozcan/ppipe/blob/1888e9269be90f549d5c00002f7e800598c6d539/index.js)
+  is an older stable version without value extracting and context change
+  support.
 
 * ppipe is not typed. No type definition exists for TypeScript nor Flow. I
-	actually love TypeScript and would support it but the lack of variadic generic
-	type parameters make it next to impossible to provide type definitions for
-	ppipe. More can be read
-	[here](https://github.com/Microsoft/TypeScript/issues/5453). Also, ppipe is as
-	dynamic as it gets, giving the ability to access virtual properties/methods
-	which may belong to the provided context, the processed value or any of the
-	possible extensions.
-	[TypeScripts Type System is Turing Complete](https://github.com/Microsoft/TypeScript/issues/14833),
-	so, maybe there is a way to type all of this but I really need help about
-	that.
+  actually love TypeScript and would support it but the lack of variadic generic
+  type parameters make it next to impossible to provide type definitions for
+  ppipe. More can be read
+  [here](https://github.com/Microsoft/TypeScript/issues/5453). Also, ppipe is as
+  dynamic as it gets, giving the ability to access virtual properties/methods
+  which may belong to the provided context, the processed value or any of the
+  possible extensions.
+  [TypeScripts Type System is Turing Complete](https://github.com/Microsoft/TypeScript/issues/14833),
+  so, maybe there is a way to type all of this but I really need help about
+  that.
