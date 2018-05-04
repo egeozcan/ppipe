@@ -49,7 +49,8 @@ it. Here is where ppipe comes in.
 _Order of arguments can be manipulated using the \_ property of ppipe function.
 The result of the previous function is inserted to its place if it exists in the
 arguments. It can also occur more than once if you want to pass the same
-parameter more than once._
+parameter more than once. If, and only if, \_ doesn't exist among the arguments,
+the piped value will be inserted at the end._
 
 ```javascript
 const ppipe = require("ppipe");
@@ -171,6 +172,46 @@ await ppipe(1)
   .pipe(add, 1); //3
 ```
 
+## Some More Examples
+
+It is possible to expand the iterable result
+
+```javascript
+const addAll = (...x) => x.reduce((a, b) => a + b, 0)
+ppipe([1,2,3]).map(x => x + 1).pipe(addAll, ..._)(); //9
+```
+
+It is possible to reach array members:
+
+```javascript
+await ppipe(10)
+    .pipe(asyncComplexDoubleArray)
+    .pipe((x, y) => x + y, _[1], _[2]);
+```
+
+Also object properties:
+
+```javascript
+ppipe(10)
+    .pipe(x => ({multipliers: [10,20], value: x}))
+    .pipe((x, y) => x * y, _.multipliers[0], _.value)(); //100
+```
+
+And you can omit the function altogether if you just want to extract values:
+
+```javascript
+ppipe({multipliers: [10,20], value: 10}).pipe(_.value)(); //10
+await ppipe({multipliers: [10,20], value: 10}).pipe(_.value); //10
+```
+
+And as you've seen before, you can always omit the ".pipe", as long as you
+know how to keep ASI in check:
+
+```javascript
+ppipe({multipliers: [10,20], value: 10})(_.value)(); //10
+await ppipe({multipliers: [10,20], value: 10})(_.value); //10
+```
+
 ## Advanced Functionality
 
 ### Chain Methods / Properties
@@ -228,7 +269,9 @@ with the new and existing extensions merged.
 
 ## Testing
 
-Clone the repository, install the dev dependencies and run the npm test command.
+All the functionality is tested, with 100% coverage. This is also integrated in the build process.
+
+To run the tests yourself, clone the repository, install the dev dependencies, and run the npm test command.
 
 `npm install`
 
