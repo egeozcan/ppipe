@@ -62,11 +62,11 @@ If that is too lisp-y, you can also use ".pipe".
 
 ```javascript
 ppipe(1)
-	.pipe(add, 1)
-	.pipe(double)
-	.pipe(square)
-	.pipe(divide, _, 8)
-	.pipe(add, 1)(); // 3
+  .pipe(add, 1)
+  .pipe(double)
+  .pipe(square)
+  .pipe(divide, _, 8)
+  .pipe(add, 1)(); // 3
 ```
 
 And then you receive some new "requirements", which end up making the "double"
@@ -74,9 +74,9 @@ function async...
 
 ```javascript
 async function asyncDouble(x) {
-	const result = x * 2;
-	await someAPICall(result);
-	return result;
+  const result = x * 2;
+  await someAPICall(result);
+  return result;
 }
 ```
 
@@ -106,9 +106,9 @@ double function return an object:
 
 ```javascript
 async function asyncComplexDouble(x) {
-	const result = x * 2;
-	const someInfo = await someAPICall(result);
-	return { result, someInfo };
+  const result = x * 2;
+  const someInfo = await someAPICall(result);
+  return { result, someInfo };
 }
 ```
 
@@ -149,14 +149,14 @@ Let's go one step further; what if you need to access a method from the result?
 
 ```javascript
 async function advancedDouble(x) {
-	const result = x * 2;
-	const someInfo = await someAPICall(result);
-	return {
-		getResult() {
-			return result;
-		},
-		someInfo
-	};
+  const result = x * 2;
+  const someInfo = await someAPICall(result);
+  return {
+    getResult() {
+      return result;
+    },
+    someInfo
+  };
 }
 ```
 
