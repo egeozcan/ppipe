@@ -23,10 +23,10 @@
 	"author": "Yavuz Ege Özcan",
 	"license": "ISC",
 	"devDependencies": {
-		"chai": "^3.5.0",
-		"coveralls": "^3.0.1",
-		"eslint": "^4.19.1",
+		"chai": "^4.2.0",
+		"coveralls": "^3.0.2",
+		"eslint": "^5.13.0",
 		"mocha": "^5.2.0",
-		"nyc": "^11.9.0"
+		"nyc": "^13.2.0"
 	}
 }
