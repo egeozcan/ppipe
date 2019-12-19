@@ -1,13 +1,15 @@
 const isFn = require("./lib/isFunction");
 const getPropertyByPath = require("./getPropertyByPath");
 const isPromise = require("./lib/isPromise");
-const unitFn = x => x;
-const isUndef = val => typeof val === "undefined";
-const truthy = val => !isUndef(val) && val !== null;
+const unitFn = (x: any) => x;
+const isUndef = (val: any) => typeof val === "undefined";
+const truthy = (val: any) => !isUndef(val) && val !== null;
+
+type anyFunction = (...args: any) => any;
 
 function createPpipe(extensions = {}) {
-	const ppipe = (val, thisVal, err) => {
-		const pipe = function(fn, ...params) {
+	const ppipe = (val: any, thisVal: any, err: Error) => {
+		const pipe = function<T extends (anyFunction | Placeholder)> (fn: T, ...params: T extends anyFunction ? Parameters<T> : any[]) {
 			if (isUndef(fn)) {
 				if (truthy(err)) {
 					throw err;
@@ -121,12 +123,15 @@ function createPpipe(extensions = {}) {
 		_
 	});
 }
+
 class Placeholder {
-	*[Symbol.iterator]() {
+	prop: string;
+
+	* [Symbol.iterator]() {
 		yield new Placeholder(this.prop, true);
 	}
 
-	constructor(prop, expandTarget) {
+	constructor(prop: string, expandTarget) {
 		this.prop = prop;
 		this.expandTarget = expandTarget;
 	}

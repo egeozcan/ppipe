@@ -1,0 +1,1 @@
+module.exports = (val: any): val is (...args: any) => any => typeof val === "function";

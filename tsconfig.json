@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2019",
+    "sourceMap": true,
+    "jsx": "react",
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": true,
+    "downlevelIteration": true
+  },
+  "exclude": [
+    "node_modules",
+    "legacy"
+  ]
+}
