@@ -7,7 +7,14 @@
 [![license](https://img.shields.io/github/license/egeozcan/ppipe.svg)](https://github.com/egeozcan/ppipe/blob/master/LICENSE)
 [![DeepScan Grade](https://deepscan.io/api/projects/565/branches/916/badge/grade.svg)](https://deepscan.io/dashboard/#view=project&pid=565&bid=916)
 
-pipes values through functions, an alternative to using the
+_Please note that this library is considered "done". It is still maintained and will be in the foreseeable future, but, 
+other than adding Typescript support, no new functionality will be added. At least, there is no plan to do so. 
+This library has an extensive test suite with 100% coverage, and it is used by at least a few well-established 
+projects in production. The mythical "production-ready" seems to be reached :)_
+
+_All bug reports and suggestions are still welcome!_
+
+**pipes values through functions**, an alternative to using the
 [proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |>
 ) for ES.
 
