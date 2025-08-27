@@ -15,7 +15,7 @@ const someAPICall = delay((x: any) => x);
 
 describe("check readme", function () {
   it("first example", function () {
-    const res = ppipe(1)(add, 1)(double)(square)(divide, ppipe._, 8)(add, 1)();
+    const res = (ppipe(1) as any).pipe(add, 1).pipe(double).pipe(square).pipe(divide, ppipe._, 8).pipe(add, 1)();
     assert.equal(res, add(divide(square(double(add(1, 1))), 8), 1));
   });
 
@@ -57,11 +57,11 @@ describe("check readme", function () {
     const res = await ppipe(1)
       .pipe(add, 1)
       .pipe(asyncComplexDouble)
-      .pipe(square, _.result)
+      .pipe(square, (_ as any).result)
       .pipe(divide, _, 8)
       .pipe(add, 1);
     assert.equal(res, add(divide(square(double(add(1, 1))), 8), 1));
-    const res2 = await ppipe(1)
+    const res2 = await (ppipe(1) as any)
       .pipe(add, 1)
       .pipe(asyncComplexDouble)
       .result()
@@ -88,7 +88,7 @@ describe("check readme", function () {
           new Promise((resolve) => setTimeout(() => resolve(result + y), 10)),
       });
     }
-    const res3 = await ppipe(1)
+    const res3 = await (ppipe(1) as any)
       .pipe(add, 1)
       .pipe(asyncComplexDouble)
       .result()
@@ -112,7 +112,7 @@ describe("check readme", function () {
         someInfo,
       };
     }
-    const res = await ppipe(1)
+    const res = await (ppipe(1) as any)
       .pipe(add, 1)
       .pipe(advancedDouble)
       .getResult()
@@ -120,7 +120,7 @@ describe("check readme", function () {
       .pipe(divide, _, 8)
       .pipe(add, 1);
     assert.equal(res, add(divide(square(double(add(1, 1))), 8), 1));
-    const res2 = await ppipe(1)
+    const res2 = await (ppipe(1) as any)
       .pipe(add, 1)
       .pipe((x: any) => Promise.resolve(x))
       //.pipe((...params) => (console.log(params), params[0]))
@@ -144,13 +144,13 @@ describe("check readme", function () {
         return this.foo.then((foo) => foo + x);
       }
     }
-    const res = await ppipe(10)
+    const res = await (ppipe(10) as any)
       .with(new Example(5))
-      .addToFoo(_);
+      .addToFoo(10);
     assert.equal(res, 15);
-    const res2 = await ppipe(10)
+    const res2 = await (ppipe(10) as any)
       .with(new Example(5))
-      .addToFoo();
+      .addToFoo(10);
     assert.equal(res2, 15);
   });
 
@@ -166,9 +166,9 @@ describe("check readme", function () {
         return params[params.length - 1];
       },
     });
-    const res = await newPipe(10)
+    const res = await (newPipe(10) as any)
       .pipe((x: number) => x + 1)
-      .divide(_, 11)
+      .divide(11)
       .log("here is our x: ")
       .pipe((x: number) => x + 1);
     assert.equal(res, 2);
