@@ -265,9 +265,6 @@ function createPipeProxy<T, E extends Extensions>(
     get value() {
       return getValue();
     },
-    get val() {
-      return getValue();
-    },
     then: thenFn,
     catch: catchFn,
   };

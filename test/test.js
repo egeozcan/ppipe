@@ -301,6 +301,219 @@ describe("ppipe (TypeScript rewrite)", function () {
 	});
 
 	// ==========================================
+	// Edge Cases for Full Coverage
+	// ==========================================
+
+	describe("edge cases", function () {
+		it("should handle rejected promise at start of chain", async function () {
+			let caught = false;
+			await ppipe(Promise.reject(new Error("start error")))
+				.pipe((x) => x + "!")
+				.catch((err) => {
+					caught = err.message === "start error";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .then() callback that throws", async function () {
+			let caught = false;
+			await ppipe("hello")
+				.pipe((x) => x)
+				.then(() => {
+					throw new Error("then error");
+				})
+				.catch((err) => {
+					caught = err.message === "then error";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .then() with no callback", async function () {
+			const res = await ppipe("hello").pipe((x) => x).then();
+			assert.equal(res, "hello");
+		});
+
+		it("should handle .catch() on sync error with handler that throws", async function () {
+			let caught = false;
+			await ppipe("hello")
+				.pipe(() => {
+					throw new Error("original");
+				})
+				.catch(() => {
+					throw new Error("catch error");
+				})
+				.catch((err) => {
+					caught = err.message === "catch error";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .catch() on sync error without handler", async function () {
+			let caught = false;
+			try {
+				await ppipe("hello")
+					.pipe(() => {
+						throw new Error("no handler");
+					})
+					.catch();
+			} catch (err) {
+				caught = err.message === "no handler";
+			}
+			assert.equal(caught, true);
+		});
+
+		it("should handle .catch() on resolved async value", async function () {
+			const res = await ppipe(Promise.resolve("async"))
+				.pipe((x) => x + "!")
+				.catch(() => "caught");
+			assert.equal(res, "async!");
+		});
+
+		it("should handle .catch() on sync value with no error", async function () {
+			const res = await ppipe("sync").pipe((x) => x).catch(() => "caught");
+			assert.equal(res, "sync");
+		});
+
+		it("should handle .then() with onRejected for sync errors", async function () {
+			const res = await ppipe("hello")
+				.pipe(() => {
+					throw new Error("sync error");
+				})
+				.then(
+					() => "fulfilled",
+					() => "rejected"
+				);
+			assert.equal(res, "rejected");
+		});
+
+		it("should handle .then() with onRejected that throws", async function () {
+			let caught = false;
+			await ppipe("hello")
+				.pipe(() => {
+					throw new Error("original");
+				})
+				.then(
+					() => "fulfilled",
+					() => {
+						throw new Error("onRejected error");
+					}
+				)
+				.catch((err) => {
+					caught = err.message === "onRejected error";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should return undefined for unknown properties", function () {
+			const pipe = ppipe("hello").pipe((x) => x);
+			assert.equal(pipe.unknownProperty, undefined);
+		});
+
+		it("should handle async rejection without catch handler in .catch()", async function () {
+			let caught = false;
+			try {
+				await ppipe(Promise.resolve("test"))
+					.pipe(() => Promise.reject(new Error("async reject")))
+					.catch();
+			} catch (err) {
+				caught = err.message === "async reject";
+			}
+			assert.equal(caught, true);
+		});
+
+		it("should handle throw inside async settled chain", async function () {
+			let caught = false;
+			await ppipe(Promise.resolve("test"))
+				.pipe(() => {
+					throw new Error("throw in settled");
+				})
+				.catch((err) => {
+					caught = err.message === "throw in settled";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .then() without onFulfilled for settled async", async function () {
+			const res = await ppipe(Promise.resolve("async"))
+				.pipe((x) => x + "!")
+				.then(null, () => "rejected");
+			assert.equal(res, "async!");
+		});
+
+		it("should throw when accessing .value on rejected async pipe", async function () {
+			let caught = false;
+			try {
+				await ppipe(Promise.resolve("test"))
+					.pipe(() => Promise.reject(new Error("value error")))
+					.value;
+			} catch (err) {
+				caught = err.message === "value error";
+			}
+			assert.equal(caught, true);
+		});
+
+		it("should reject when .then() on sync error without onRejected", async function () {
+			let caught = false;
+			await ppipe("test")
+				.pipe(() => {
+					throw new Error("then no handler");
+				})
+				.then((x) => x + "!")
+				.catch((err) => {
+					caught = err.message === "then no handler";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .then() on async rejected value without onRejected", async function () {
+			let caught = false;
+			await ppipe(Promise.resolve("test"))
+				.pipe(() => Promise.reject(new Error("async then error")))
+				.then((x) => x + "!")
+				.catch((err) => {
+					caught = err.message === "async then error";
+				});
+			assert.equal(caught, true);
+		});
+
+		it("should handle .then() on async rejected value with onRejected", async function () {
+			const res = await ppipe(Promise.resolve("test"))
+				.pipe(() => Promise.reject(new Error("handled")))
+				.then(
+					(x) => x + "!",
+					() => "caught by onRejected"
+				);
+			assert.equal(res, "caught by onRejected");
+		});
+
+		it("should handle .catch() on sync error with successful handler", async function () {
+			const res = await ppipe("test")
+				.pipe(() => {
+					throw new Error("caught");
+				})
+				.catch(() => "recovered");
+			assert.equal(res, "recovered");
+		});
+
+		it("should access .val on async pipe", async function () {
+			const res = await ppipe(Promise.resolve("async")).pipe((x) => x + "!").val;
+			assert.equal(res, "async!");
+		});
+
+		it("should throw when accessing .val on rejected async pipe", async function () {
+			let caught = false;
+			try {
+				await ppipe(Promise.resolve("test"))
+					.pipe(() => Promise.reject(new Error("val error")))
+					.val;
+			} catch (err) {
+				caught = err.message === "val error";
+			}
+			assert.equal(caught, true);
+		});
+	});
+
+	// ==========================================
 	// Alternatives for Dropped Features
 	// ==========================================
 
