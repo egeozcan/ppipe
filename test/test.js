@@ -2,6 +2,7 @@
 
 const assert = require("chai").assert;
 const ppipe = require("../dist/index.js").default;
+const { isPlaceholder, _ : exportedPlaceholder } = require("../dist/index.js");
 
 function doubleSay(str) {
 	return str + ", " + str;
@@ -407,6 +408,20 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should return undefined for unknown properties", function () {
 			const pipe = ppipe("hello").pipe((x) => x);
 			assert.equal(pipe.unknownProperty, undefined);
+		});
+
+		it("should correctly identify placeholders with isPlaceholder", function () {
+			assert.equal(isPlaceholder(_), true);
+			assert.equal(isPlaceholder(exportedPlaceholder), true);
+			assert.equal(isPlaceholder(null), false);
+			assert.equal(isPlaceholder(undefined), false);
+			assert.equal(isPlaceholder({}), false);
+			assert.equal(isPlaceholder("_"), false);
+		});
+
+		it("should use directly exported placeholder", function () {
+			const res = ppipe(5).pipe((a, b) => a + b, exportedPlaceholder, 3).value;
+			assert.equal(res, 8);
 		});
 
 		it("should handle async rejection without catch handler in .catch()", async function () {
