@@ -255,7 +255,13 @@ See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIB
 - Complete TypeScript rewrite with strict typing
 - Full IDE autocomplete and type inference support
 - Removed features that couldn't be strictly typed (see Migration section)
-- 100% test coverage
+- 100% test coverage on source files
+- Strict ESLint rules disable all TypeScript escape hatches:
+  - No `any` types
+  - No type assertions (`as`)
+  - No ts-ignore/ts-expect-error comments
+  - No non-null assertions (`!`)
+- Discriminated union state management for type-safe async/sync/error handling
 - Updated all dependencies to latest versions
 
 ### v2.x
