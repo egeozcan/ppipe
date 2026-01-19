@@ -19,8 +19,7 @@
 	"scripts": {
 		"build": "npm run build:cjs && npm run build:esm",
 		"build:cjs": "tsc",
-		"build:esm": "tsc -p tsconfig.esm.json && npm run build:esm:fix",
-		"build:esm:fix": "node -e \"const fs=require('fs'),p=require('path'),d='dist/esm';fs.readdirSync(d).filter(f=>f.endsWith('.js')).forEach(f=>{const fp=p.join(d,f);let c=fs.readFileSync(fp,'utf8');c=c.replace(/from\\s+['\\\"](\\.\\.\\/|\\.\\/)([^'\\\"]+)['\\\"]/g,(m,pr,pa)=>pa.endsWith('.js')?m:\\`from \\\"\\${pr}\\${pa}.js\\\"\\`);fs.writeFileSync(fp,c)});fs.writeFileSync(p.join(d,'package.json'),'{\\\"type\\\":\\\"module\\\"}');\"",
+		"build:esm": "tsc -p tsconfig.esm.json && node scripts/fix-esm.js",
 		"build:test": "tsc -p tsconfig.test.json",
 		"clean": "rm -rf dist dist-test",
 		"prebuild": "npm run clean",
