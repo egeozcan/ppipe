@@ -16,28 +16,22 @@ export { isPlaceholder } from "./placeholder";
 
 function createPpipe<E extends Extensions>(extensions: E): PipeFactory<E> {
 	// The main factory function
-	function ppipe<T>(value: T): PipeWithExtensions<T, E, IsAsync<T>> {
+	function ppipeFunc<T>(value: T): PipeWithExtensions<T, E, IsAsync<T>> {
 		return createPipe(value, extensions);
 	}
 
-	// Attach the placeholder
-	Object.defineProperty(ppipe, "_", {
-		value: _,
-		writable: false,
-		enumerable: true,
-		configurable: false,
+	// Create the extend function
+	const extendFunc = <NewE extends Extensions>(newExtensions: NewE): PipeFactory<E & NewE> =>
+		createPpipe({ ...extensions, ...newExtensions });
+
+	// Combine function with properties using Object.assign
+	// This returns the correct intersection type
+	const factory = Object.assign(ppipeFunc, {
+		_: _,
+		extend: extendFunc,
 	});
 
-	// Attach extend method
-	Object.defineProperty(ppipe, "extend", {
-		value: <NewE extends Extensions>(newExtensions: NewE): PipeFactory<E & NewE> =>
-			createPpipe({ ...extensions, ...newExtensions }),
-		writable: false,
-		enumerable: true,
-		configurable: false,
-	});
-
-	return ppipe as PipeFactory<E>;
+	return factory;
 }
 
 // ==========================================

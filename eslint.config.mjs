@@ -211,7 +211,24 @@ export default tseslint.config(
 					next: ["const", "let", "var"],
 				},
 			],
-			"@typescript-eslint/no-explicit-any": "off",
+			// Disable ALL TypeScript escape hatches
+			"@typescript-eslint/no-explicit-any": "error",
+			"@typescript-eslint/ban-ts-comment": [
+				"error",
+				{
+					"ts-expect-error": true,
+					"ts-ignore": true,
+					"ts-nocheck": true,
+					"ts-check": false,
+				},
+			],
+			"@typescript-eslint/no-non-null-assertion": "error",
+			"@typescript-eslint/consistent-type-assertions": [
+				"error",
+				{
+					assertionStyle: "never",
+				},
+			],
 			"@typescript-eslint/no-empty-object-type": "off",
 		},
 	},

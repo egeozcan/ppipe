@@ -3,26 +3,29 @@
 // ==========================================
 
 // Branded placeholder type using unique symbol
-declare const PlaceholderBrand: unique symbol;
+// Export the symbol so it can be used in placeholder.ts
+export const PlaceholderBrand: unique symbol = Symbol("ppipe.placeholder");
 export type PlaceholderType = { readonly [PlaceholderBrand]: true };
 
 // Async state tracking - determines if a type is a Promise
 export type IsAsync<T> = T extends Promise<unknown> ? true : false;
 
-// Extensions must have explicit function signatures
-// The first parameter is always the piped value
-// Using 'any' here is intentional - extensions can have various signatures
-
-export type Extensions = Record<string, (value: any, ...args: any[]) => unknown>;
+// Extensions base type - a record with string keys
+// The actual function types are preserved through the generic parameter E
+// This avoids 'any' by not constraining the function signatures at the base level
+export type Extensions = Record<string, unknown>;
 
 // Helper to combine async states (true if either is true)
 export type CombineAsync<A extends boolean, B extends boolean> = A extends true ? true : B extends true ? true : false;
+
+// Type guard helper - checks if a value is a function
+export type IsFunction<T> = T extends (...args: never[]) => unknown ? true : false;
 
 // ==========================================
 // Pipe Interface with Placeholder Overloads
 // ==========================================
 
-export interface Pipe<T, E extends Extensions = {}, Async extends boolean = false> {
+export interface Pipe<T, E extends Extensions = Record<string, never>, Async extends boolean = false> {
 	// Basic pipe - value as only argument (no placeholder needed)
 	pipe<R>(fn: (value: Awaited<T>) => R): PipeWithExtensions<Awaited<R>, E, CombineAsync<Async, IsAsync<R>>>;
 
@@ -213,10 +216,12 @@ export interface Pipe<T, E extends Extensions = {}, Async extends boolean = fals
 	// Value extraction
 	// ==========================================
 
-	readonly value: Async extends true ? Promise<Awaited<T>> : Awaited<T>;
+	// Returns T for sync pipes, Promise<T> for async pipes
+	// Use `await pipe.value` or `.then()` for consistent handling
+	readonly value: T | Promise<T>;
 
 	// Legacy alias for value
-	readonly val: Async extends true ? Promise<Awaited<T>> : Awaited<T>;
+	readonly val: T | Promise<T>;
 
 	// ==========================================
 	// Promise interface
@@ -243,8 +248,12 @@ export type PipeWithExtensions<T, E extends Extensions, Async extends boolean> =
 // Maps extension functions to pipe methods
 // Each extension fn(value, ...args) becomes pipe.fn(...args)
 // Returns PipeWithExtensions to preserve extension methods through the chain
+// Only maps keys where the value is a function
 export type ExtensionMethods<_T, E extends Extensions, Async extends boolean> = {
-	[K in keyof E]: E[K] extends (value: infer _V, ...args: infer A) => infer R
+	[K in keyof E as E[K] extends (...args: infer _Args) => unknown ? K : never]: E[K] extends (
+		value: infer _V,
+		...args: infer A
+	) => infer R
 		? (...args: A) => PipeWithExtensions<Awaited<R>, E, CombineAsync<Async, IsAsync<R>>>
 		: never;
 };
@@ -253,7 +262,7 @@ export type ExtensionMethods<_T, E extends Extensions, Async extends boolean> = 
 // Factory interface
 // ==========================================
 
-export interface PipeFactory<E extends Extensions = {}> {
+export interface PipeFactory<E extends Extensions = Record<string, never>> {
 	<T>(value: T): PipeWithExtensions<T, E, IsAsync<T>>;
 	readonly _: PlaceholderType;
 	extend<NewE extends Extensions>(ext: NewE): PipeFactory<E & NewE>;

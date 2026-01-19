@@ -304,6 +304,38 @@ describe("ppipe (TypeScript rewrite)", function () {
 			const strResult = myPipe(5).double().stringify().value;
 			assert.equal(strResult, "10");
 		});
+
+		it("should ignore non-function extension values", function () {
+			const mixedExtensions = {
+				validFn: (x: number): number => x * 2,
+				notAFunction: 42,
+				alsoNotAFunction: "hello",
+			};
+			const myPipe = ppipe.extend(mixedExtensions);
+			const pipe = myPipe(5) as unknown as Record<string, unknown>;
+
+			// Valid function extension should work
+			assert.equal(typeof pipe["validFn"], "function");
+
+			// Non-function extensions should return undefined
+			assert.equal(pipe["notAFunction"], undefined);
+			assert.equal(pipe["alsoNotAFunction"], undefined);
+		});
+
+		it("should ignore inherited properties on extensions", function () {
+			const parent = { inheritedFn: (x: number): number => x * 3 };
+			const child = Object.create(parent) as { ownFn: (x: number) => number };
+			child.ownFn = (x: number): number => x * 2;
+
+			const myPipe = ppipe.extend(child);
+			const pipe = myPipe(5) as unknown as Record<string, unknown>;
+
+			// Own property function should work
+			assert.equal(typeof pipe["ownFn"], "function");
+
+			// Inherited property should not be added as extension method
+			assert.equal(pipe["inheritedFn"], undefined);
+		});
 	});
 
 	// ==========================================

@@ -2,26 +2,26 @@
 // Placeholder Implementation
 // ==========================================
 
-import type { PlaceholderType } from "./types";
+import { PlaceholderBrand, type PlaceholderType } from "./types";
 
-// Brand symbol for type safety
-const PlaceholderBrand = Symbol("ppipe.placeholder");
-
-// Internal placeholder class
-class PlaceholderImpl {
+// Internal placeholder class with the brand
+class PlaceholderImpl implements PlaceholderType {
 	readonly [PlaceholderBrand] = true as const;
+}
+
+// Helper to check if an object has the placeholder brand
+function hasPlaceholderBrand(obj: object): obj is PlaceholderType {
+	return PlaceholderBrand in obj;
 }
 
 // Type guard to check if a value is a placeholder
 export function isPlaceholder(value: unknown): value is PlaceholderType {
-	return (
-		value !== null &&
-		typeof value === "object" &&
-		PlaceholderBrand in value &&
-		(value as Record<symbol, unknown>)[PlaceholderBrand] === true
-	);
+	if (value === null || typeof value !== "object") {
+		return false;
+	}
+
+	return hasPlaceholderBrand(value) && value[PlaceholderBrand] === true;
 }
 
-// The singleton placeholder instance
-// Cast to PlaceholderType to match the branded type in types.ts
-export const _: PlaceholderType = new PlaceholderImpl() as unknown as PlaceholderType;
+// The singleton placeholder instance - class implements PlaceholderType so no assertion needed
+export const _: PlaceholderType = Object.freeze(new PlaceholderImpl());

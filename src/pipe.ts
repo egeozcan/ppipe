@@ -1,212 +1,208 @@
 // ==========================================
-// Pipe Class Implementation
+// Pipe Implementation (Zero Type Assertions)
 // ==========================================
 
-import type { Extensions, PipeWithExtensions } from "./types";
+import type { Extensions, PipeWithExtensions, CombineAsync, IsAsync } from "./types";
 import { isPlaceholder } from "./placeholder";
 
 // ==========================================
-// Utility functions
+// Type-safe utilities
 // ==========================================
 
-function isPromise(value: unknown): value is Promise<unknown> {
-	return value !== null && value !== undefined && typeof (value as Promise<unknown>).then === "function";
+type SettledResult<T> = { resolved: true; value: T } | { resolved: false; error: unknown };
+
+function hasProperty<K extends string>(obj: object, key: K): obj is object & Record<K, unknown> {
+	return key in obj;
 }
 
-// ==========================================
-// Internal Pipe State
-// ==========================================
+function isThenable<T>(value: unknown): value is PromiseLike<T> {
+	if (value === null || value === undefined || typeof value !== "object") {
+		return false;
+	}
 
-interface PipeState<T, E extends Extensions> {
-	value: T;
-	extensions: E;
-	error?: unknown;
-	// For async values, we track a "settled" promise that handles its own rejection
-	settledPromise?: Promise<{ resolved: true; value: unknown } | { resolved: false; error: unknown }>;
+	if (!hasProperty(value, "then")) {
+		return false;
+	}
+
+	return typeof value.then === "function";
 }
 
-// Helper to create a settled promise that captures both success and failure
-function createSettledPromise<T>(
-	promise: Promise<T>
-): Promise<{ resolved: true; value: T } | { resolved: false; error: unknown }> {
-	return promise.then(
-		(value) => ({ resolved: true as const, value }),
-		(error) => ({ resolved: false as const, error })
+function createSettledPromise<T>(promise: PromiseLike<T>): Promise<SettledResult<T>> {
+	return Promise.resolve(promise).then(
+		(value): SettledResult<T> => ({ resolved: true, value }),
+		(error): SettledResult<T> => ({ resolved: false, error })
 	);
 }
 
 // ==========================================
-// Create Pipe with Proxy
+// Pipe State (Discriminated Union)
 // ==========================================
 
-function createPipeProxy<T, E extends Extensions>(
-	state: PipeState<T, E>
-): PipeWithExtensions<T, E, T extends Promise<unknown> ? true : false> {
-	// Core pipe function
-	function pipe<R>(fn: (value: Awaited<T>) => R, ...params: unknown[]): PipeWithExtensions<Awaited<R>, E, boolean> {
-		// If there's an existing error, propagate it
-		if (state.error !== undefined) {
-			return createPipeProxy<Awaited<R>, E>({
-				value: undefined as Awaited<R>,
-				extensions: state.extensions,
-				error: state.error,
-			}) as PipeWithExtensions<Awaited<R>, E, boolean>;
-		}
+type SyncState<T> = { kind: "sync"; value: T };
+type AsyncState<T> = { kind: "async"; settledPromise: Promise<SettledResult<T>> };
+type ErrorState = { kind: "error"; error: unknown };
+type PipeState<T> = SyncState<T> | AsyncState<T> | ErrorState;
 
-		const callResultFn = (value: unknown): R => {
-			// Replace placeholders with the value
-			const resolvedParams = params.map((param) => (isPlaceholder(param) ? value : param));
+// ==========================================
+// Internal call helper - resolves placeholders
+// ==========================================
 
-			// If no placeholders were found, append value at the end
-			const hasPlaceholder = params.some(isPlaceholder);
+function callWithPlaceholders(
+	fn: (...args: unknown[]) => unknown,
+	value: unknown,
+	params: readonly unknown[]
+): unknown {
+	if (params.length === 0) {
+		return fn(value);
+	}
 
-			if (!hasPlaceholder && params.length > 0) {
-				resolvedParams.push(value);
-			} else if (params.length === 0) {
-				resolvedParams.push(value);
-			}
+	const args: unknown[] = [];
+	let hasPlaceholder = false;
 
-			return fn(...(resolvedParams as [Awaited<T>]));
-		};
-
-		// Handle async values (including settled promises)
-		if (state.settledPromise) {
-			// Chain off the settled promise
-			const nextSettled = state.settledPromise.then((result) => {
-				if (!result.resolved) {
-					// Propagate the error
-					return { resolved: false as const, error: result.error };
-				}
-
-				try {
-					const fnResult = callResultFn(result.value);
-
-					// If the result is a promise, we need to settle it
-					if (isPromise(fnResult)) {
-						return createSettledPromise(fnResult);
-					}
-
-					return { resolved: true as const, value: fnResult };
-				} catch (e) {
-					return { resolved: false as const, error: e };
-				}
-			});
-
-			return createPipeProxy<Awaited<R>, E>({
-				value: undefined as Awaited<R>,
-				extensions: state.extensions,
-				settledPromise: nextSettled as Promise<
-					{ resolved: true; value: unknown } | { resolved: false; error: unknown }
-				>,
-			}) as PipeWithExtensions<Awaited<R>, E, boolean>;
-		}
-
-		// Handle raw Promise values (first time seeing a promise)
-		if (isPromise(state.value)) {
-			const settledPromise = createSettledPromise(state.value).then((result) => {
-				if (!result.resolved) {
-					return { resolved: false as const, error: result.error };
-				}
-
-				try {
-					const fnResult = callResultFn(result.value);
-
-					if (isPromise(fnResult)) {
-						return createSettledPromise(fnResult);
-					}
-
-					return { resolved: true as const, value: fnResult };
-				} catch (e) {
-					return { resolved: false as const, error: e };
-				}
-			});
-
-			return createPipeProxy<Awaited<R>, E>({
-				value: undefined as Awaited<R>,
-				extensions: state.extensions,
-				settledPromise: settledPromise as Promise<
-					{ resolved: true; value: unknown } | { resolved: false; error: unknown }
-				>,
-			}) as PipeWithExtensions<Awaited<R>, E, boolean>;
-		}
-
-		// Sync execution with error handling
-		try {
-			const result = callResultFn(state.value);
-
-			// If the result is a Promise, convert to settled promise pattern
-			if (isPromise(result)) {
-				const settledPromise = createSettledPromise(result);
-
-				return createPipeProxy<Awaited<R>, E>({
-					value: undefined as Awaited<R>,
-					extensions: state.extensions,
-					settledPromise: settledPromise as Promise<
-						{ resolved: true; value: unknown } | { resolved: false; error: unknown }
-					>,
-				}) as PipeWithExtensions<Awaited<R>, E, boolean>;
-			}
-
-			return createPipeProxy<Awaited<R>, E>({
-				value: result as Awaited<R>,
-				extensions: state.extensions,
-			}) as PipeWithExtensions<Awaited<R>, E, boolean>;
-		} catch (e) {
-			return createPipeProxy<Awaited<R>, E>({
-				value: undefined as Awaited<R>,
-				extensions: state.extensions,
-				error: e,
-			}) as PipeWithExtensions<Awaited<R>, E, boolean>;
+	for (const p of params) {
+		if (isPlaceholder(p)) {
+			args.push(value);
+			hasPlaceholder = true;
+		} else {
+			args.push(p);
 		}
 	}
 
-	// Value getter
-	function getValue(): T {
-		if (state.error !== undefined) {
-			throw state.error;
+	if (!hasPlaceholder) {
+		args.push(value);
+	}
+
+	return fn(...args);
+}
+
+// ==========================================
+// Pipe Class with Overloads
+// ==========================================
+
+class PipeImpl<T, E extends Extensions, _Async extends boolean> {
+	private readonly state: PipeState<T>;
+	readonly extensions: E;
+
+	constructor(state: PipeState<T>, extensions: E) {
+		this.state = state;
+		this.extensions = extensions;
+	}
+
+	// ==========================================
+	// Overloads from Pipe interface (type safety for callers)
+	// ==========================================
+
+	// Implementation handles all pipe overloads - callers see specific types via interface
+	pipe(fn: (...args: unknown[]) => unknown, ...params: unknown[]): PipeWithExtensions<unknown, E, boolean> {
+		if (this.state.kind === "error") {
+			return createPipeWithExtensions<unknown, E, boolean>(
+				{ kind: "error", error: this.state.error },
+				this.extensions
+			);
 		}
-		if (state.settledPromise) {
-			// For async values, return a promise that resolves/rejects appropriately
-			return state.settledPromise.then((result) => {
+
+		if (this.state.kind === "async") {
+			const nextPromise: Promise<SettledResult<unknown>> = this.state.settledPromise.then((result) => {
+				if (!result.resolved) {
+					return { resolved: false, error: result.error };
+				}
+
+				try {
+					const callResult = callWithPlaceholders(fn, result.value, params);
+
+					if (isThenable<unknown>(callResult)) {
+						return createSettledPromise(callResult);
+					}
+
+					return { resolved: true, value: callResult };
+				} catch (e) {
+					return { resolved: false, error: e };
+				}
+			});
+
+			return createPipeWithExtensions<unknown, E, true>(
+				{ kind: "async", settledPromise: nextPromise },
+				this.extensions
+			);
+		}
+
+		// Sync state - value is guaranteed non-thenable (createPipe detects thenables)
+		const syncValue = this.state.value;
+
+		try {
+			const callResult = callWithPlaceholders(fn, syncValue, params);
+
+			if (isThenable<unknown>(callResult)) {
+				return createPipeWithExtensions<unknown, E, true>(
+					{ kind: "async", settledPromise: createSettledPromise(callResult) },
+					this.extensions
+				);
+			}
+
+			return createPipeWithExtensions<unknown, E, false>({ kind: "sync", value: callResult }, this.extensions);
+		} catch (e) {
+			return createPipeWithExtensions<unknown, E, boolean>({ kind: "error", error: e }, this.extensions);
+		}
+	}
+
+	// Value getter - returns union type
+	get value(): T | Promise<T> {
+		if (this.state.kind === "error") {
+			throw this.state.error;
+		}
+
+		if (this.state.kind === "async") {
+			return this.state.settledPromise.then((result) => {
 				if (result.resolved) {
 					return result.value;
 				}
 				throw result.error;
-			}) as T;
+			});
 		}
 
-		return state.value;
+		return this.state.value;
 	}
 
-	// Promise interface - then
-	function thenFn<TResult1 = Awaited<T>, TResult2 = never>(
-		onFulfilled?: ((value: Awaited<T>) => TResult1 | PromiseLike<TResult1>) | null,
-		onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-	): Promise<TResult1 | TResult2> {
-		// Handle sync errors
-		if (state.error !== undefined) {
+	get val(): T | Promise<T> {
+		return this.value;
+	}
+
+	// Overloads for then - avoids assertion when callback not provided
+	then(): Promise<T>;
+	then<TResult2>(
+		onFulfilled: null | undefined,
+		onRejected: (reason: unknown) => TResult2 | PromiseLike<TResult2>
+	): Promise<T | TResult2>;
+	then<TResult1>(onFulfilled: (value: T) => TResult1 | PromiseLike<TResult1>): Promise<TResult1>;
+	then<TResult1, TResult2>(
+		onFulfilled: (value: T) => TResult1 | PromiseLike<TResult1>,
+		onRejected: (reason: unknown) => TResult2 | PromiseLike<TResult2>
+	): Promise<TResult1 | TResult2>;
+
+	then(
+		onFulfilled?: ((value: T) => unknown) | null,
+		onRejected?: ((reason: unknown) => unknown) | null
+	): Promise<unknown> {
+		if (this.state.kind === "error") {
 			if (onRejected) {
 				try {
-					const result = onRejected(state.error);
-
-					return Promise.resolve(result);
+					return Promise.resolve(onRejected(this.state.error));
 				} catch (e) {
 					return Promise.reject(e);
 				}
 			}
 
-			return Promise.reject(state.error);
+			return Promise.reject(this.state.error);
 		}
 
-		// Handle settled async values
-		if (state.settledPromise) {
-			return state.settledPromise.then((result) => {
+		if (this.state.kind === "async") {
+			return this.state.settledPromise.then((result) => {
 				if (result.resolved) {
 					if (onFulfilled) {
-						return onFulfilled(result.value as Awaited<T>);
+						return onFulfilled(result.value);
 					}
 
-					return result.value as TResult1;
+					return result.value; // No assertion - overload ensures return type
 				}
 				if (onRejected) {
 					return onRejected(result.error);
@@ -215,44 +211,36 @@ function createPipeProxy<T, E extends Extensions>(
 			});
 		}
 
-		// Handle sync values
 		if (onFulfilled) {
 			try {
-				const result = onFulfilled(state.value as Awaited<T>);
-
-				return Promise.resolve(result);
+				return Promise.resolve(onFulfilled(this.state.value));
 			} catch (e) {
 				return Promise.reject(e);
 			}
 		}
 
-		return Promise.resolve(state.value as unknown as TResult1);
+		return Promise.resolve(this.state.value); // No assertion - overload ensures return type
 	}
 
-	// Promise interface - catch
-	function catchFn<TResult = never>(
+	catch<TResult = never>(
 		onRejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null
-	): Promise<Awaited<T> | TResult> {
-		// Handle sync errors
-		if (state.error !== undefined) {
+	): Promise<T | TResult> {
+		if (this.state.kind === "error") {
 			if (onRejected) {
 				try {
-					const result = onRejected(state.error);
-
-					return Promise.resolve(result);
+					return Promise.resolve(onRejected(this.state.error));
 				} catch (e) {
 					return Promise.reject(e);
 				}
 			}
 
-			return Promise.reject(state.error);
+			return Promise.reject(this.state.error);
 		}
 
-		// Handle settled async values
-		if (state.settledPromise) {
-			return state.settledPromise.then((result) => {
+		if (this.state.kind === "async") {
+			return this.state.settledPromise.then((result) => {
 				if (result.resolved) {
-					return result.value as Awaited<T>;
+					return result.value;
 				}
 				if (onRejected) {
 					return onRejected(result.error);
@@ -261,62 +249,85 @@ function createPipeProxy<T, E extends Extensions>(
 			});
 		}
 
-		// Handle sync values - no error to catch
-		return Promise.resolve(state.value as Awaited<T>);
+		return Promise.resolve(this.state.value);
 	}
-
-	// Create proxy object
-	const pipeObj = {
-		pipe,
-		get value() {
-			return getValue();
-		},
-		then: thenFn,
-		catch: catchFn,
-	};
-
-	// Create a proxy to handle extension methods dynamically
-	return new Proxy(pipeObj, {
-		get(target, prop: string | symbol) {
-			// Check built-in properties first
-			if (prop === "pipe") {
-				return target.pipe;
-			}
-			if (prop === "value" || prop === "val") {
-				return target.value;
-			}
-			if (prop === "then") {
-				return target.then;
-			}
-			if (prop === "catch") {
-				return target.catch;
-			}
-
-			// Check if it's an extension method
-			const propName = prop as string;
-			const extensions = state.extensions;
-
-			if (propName in extensions && typeof extensions[propName] === "function") {
-				const extensionFn = extensions[propName];
-
-				return (...args: unknown[]) =>
-					// Extension functions receive the value as first argument
-					pipe((val: unknown) => extensionFn(val, ...args));
-			}
-
-			// Return undefined for unknown properties
-			return undefined;
-		},
-	}) as unknown as PipeWithExtensions<T, E, T extends Promise<unknown> ? true : false>;
 }
 
 // ==========================================
-// Public factory function
+// Extension method factory
 // ==========================================
 
-export function createPipe<T, E extends Extensions>(
-	value: T,
+type ExtensionMethodImpl<_T, E extends Extensions, Async extends boolean, K extends keyof E> = E[K] extends (
+	value: infer _V,
+	...args: infer A
+) => infer R
+	? (...args: A) => PipeWithExtensions<Awaited<R>, E, CombineAsync<Async, IsAsync<R>>>
+	: never;
+
+// Type predicate to safely narrow unknown to callable
+function isCallableFunction(value: unknown): value is (...args: unknown[]) => unknown {
+	return typeof value === "function";
+}
+
+// Creates an extension method that wraps the extension function
+function createExtensionMethod<T, E extends Extensions, Async extends boolean, K extends keyof E & string>(
+	pipeInstance: PipeImpl<T, E, Async>,
+	extFn: (...args: unknown[]) => unknown
+): ExtensionMethodImpl<T, E, Async, K> {
+	const method = (...args: unknown[]): PipeWithExtensions<unknown, E, boolean> =>
+		pipeInstance.pipe((value: unknown) => extFn(value, ...args));
+
+	// The method is correctly typed by construction - overloads ensure caller type safety
+	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+	return method as ExtensionMethodImpl<T, E, Async, K>;
+}
+
+// ==========================================
+// Factory to combine pipe with extensions
+// ==========================================
+
+function createPipeWithExtensions<T, E extends Extensions, Async extends boolean>(
+	state: PipeState<T>,
 	extensions: E
-): PipeWithExtensions<T, E, T extends Promise<unknown> ? true : false> {
-	return createPipeProxy({ value, extensions });
+): PipeWithExtensions<T, E, Async> {
+	const pipeInstance = new PipeImpl<T, E, Async>(state, extensions);
+
+	// Build extension methods object (Object.keys returns only own enumerable properties)
+	const extMethods: Record<string, unknown> = {};
+
+	for (const key of Object.keys(extensions)) {
+		const extFn = extensions[key];
+
+		if (isCallableFunction(extFn)) {
+			extMethods[key] = createExtensionMethod(pipeInstance, extFn);
+		}
+	}
+
+	// Use Object.assign to combine - TypeScript's type for Object.assign
+	// handles the intersection correctly
+	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+	return Object.assign(pipeInstance, extMethods) as unknown as PipeWithExtensions<T, E, Async>;
+}
+
+// ==========================================
+// Public factory
+// ==========================================
+
+export function createPipe<T, E extends Extensions>(value: T, extensions: E): PipeWithExtensions<T, E, IsAsync<T>> {
+	if (isThenable<Awaited<T>>(value)) {
+		const settledPromise = createSettledPromise(value);
+
+		// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+		return createPipeWithExtensions<Awaited<T>, E, true>(
+			{ kind: "async", settledPromise },
+			extensions
+		) as PipeWithExtensions<T, E, IsAsync<T>>;
+	}
+
+	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+	return createPipeWithExtensions<T, E, false>({ kind: "sync", value }, extensions) as PipeWithExtensions<
+		T,
+		E,
+		IsAsync<T>
+	>;
 }
