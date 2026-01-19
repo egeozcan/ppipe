@@ -59,3 +59,5 @@ All TypeScript escape hatches are disabled via ESLint:
 - `createExtensionMethod` return type
 - `createPipeWithExtensions` return type
 - `createPipe` async/sync branch returns
+
+**IMPORTANT: Never add any new type assertions, `any` types, ts-ignore comments, or other TypeScript escape hatches. The 4 existing boundary assertions are the maximum allowed. If new code cannot be written without escape hatches, restructure the approach using type predicates, discriminated unions, or function overloads instead.**
