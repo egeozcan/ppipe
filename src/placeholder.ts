@@ -2,24 +2,24 @@
 // Placeholder Implementation
 // ==========================================
 
-import type { PlaceholderType } from './types';
+import type { PlaceholderType } from "./types";
 
 // Brand symbol for type safety
-const PlaceholderBrand = Symbol('ppipe.placeholder');
+const PlaceholderBrand = Symbol("ppipe.placeholder");
 
 // Internal placeholder class
 class PlaceholderImpl {
-  readonly [PlaceholderBrand] = true as const;
+	readonly [PlaceholderBrand] = true as const;
 }
 
 // Type guard to check if a value is a placeholder
 export function isPlaceholder(value: unknown): value is PlaceholderType {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    PlaceholderBrand in value &&
-    (value as Record<symbol, unknown>)[PlaceholderBrand] === true
-  );
+	return (
+		value !== null &&
+		typeof value === "object" &&
+		PlaceholderBrand in value &&
+		(value as Record<symbol, unknown>)[PlaceholderBrand] === true
+	);
 }
 
 // The singleton placeholder instance

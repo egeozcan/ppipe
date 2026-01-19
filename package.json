@@ -24,7 +24,9 @@
 		"typecheck": "tsc --noEmit",
 		"test": "npm run build:test && nyc --reporter=text --reporter=html mocha dist-test/test/test.js",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
-		"lint": "eslint --fix src/"
+		"lint": "eslint --fix src/",
+		"lint:check": "eslint src/",
+		"prepare": "husky"
 	},
 	"keywords": [
 		"piping",
@@ -44,6 +46,7 @@
 	"author": "Yavuz Ege Özcan",
 	"license": "ISC",
 	"devDependencies": {
+		"@eslint/js": "^9.39.2",
 		"@types/chai": "^5.0.0",
 		"@types/mocha": "^10.0.0",
 		"@types/node": "^22.0.0",
@@ -52,9 +55,12 @@
 		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^10.0.0",
 		"eslint-plugin-prettier": "^5.0.0",
+		"globals": "^17.0.0",
+		"husky": "^9.1.7",
 		"mocha": "^11.0.0",
 		"nyc": "^17.0.0",
 		"prettier": "^3.0.0",
-		"typescript": "^5.0.0"
+		"typescript": "^5.0.0",
+		"typescript-eslint": "^8.53.1"
 	}
 }
