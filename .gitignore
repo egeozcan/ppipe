@@ -34,3 +34,5 @@ node_modules
 .vscode/launch.json
 .nyc_output
 /.idea/
+.aider*
+dist/
