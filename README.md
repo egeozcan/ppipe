@@ -5,325 +5,263 @@
 [![npm](https://img.shields.io/npm/v/ppipe.svg)](https://www.npmjs.com/package/ppipe)
 [![npm](https://img.shields.io/npm/dt/ppipe.svg)](https://www.npmjs.com/package/ppipe)
 [![license](https://img.shields.io/github/license/egeozcan/ppipe.svg)](https://github.com/egeozcan/ppipe/blob/master/LICENSE)
-[![DeepScan Grade](https://deepscan.io/api/projects/565/branches/916/badge/grade.svg)](https://deepscan.io/dashboard/#view=project&pid=565&bid=916)
 
-_Please note that this library is considered "done". It is still maintained and will be in the foreseeable future, but, 
-other than adding Typescript support, no new functionality will be added. At least, there is no plan to do so. 
-This library has an extensive test suite with 100% coverage, and it is used by at least a few well-established 
-projects in production. The mythical "production-ready" seems to be reached :)_
+**Strictly-typed pipes for values through functions**, an alternative to using the
+[proposed pipe operator](https://github.com/tc39/proposal-pipeline-operator) ( |> ) for ES.
 
-_All bug reports and suggestions are still welcome!_
-
-**pipes values through functions**, an alternative to using the
-[proposed pipe operator](https://github.com/mindeavor/es-pipeline-operator) ( |>
-) for ES.
-
-[Demo available on RunKit](https://runkit.com/egeozcan/ppipe).
-
-Supports functions returning promises too. In that case, the result of the chain
-will also be a promise. This is similar to the proposed support for await in the
-chained functions.
+Version 3.0 is a complete TypeScript rewrite with **maximum type safety** - no `any` in the public API, full IDE autocomplete support, and correct type inference throughout the chain.
 
 ## Installation
 
-`npm install ppipe`
-
-## Problems ppipe solves
-
-Let's assume you have these functions:
-
-```javascript
-const add = (x, y) => x + y;
-const square = x => x * x;
-const divide = (x, y) => x / y;
-const double = x => x + x;
+```bash
+npm install ppipe
 ```
 
-How do you pass the results from one to another?
+## Quick Start
 
-```javascript
-//good old single line solution
-add(divide(square(double(add(1, 1))), 8), 1);
-//try to get creative with variable names?
-const incremented = add(1, 1);
-const doubled = double(incremented);
-//...
+```typescript
+import ppipe, { _ } from 'ppipe';
+
+const add = (x: number, y: number) => x + y;
+const square = (x: number) => x * x;
+const divide = (x: number, y: number) => x / y;
+const double = (x: number) => x * 2;
+
+// Basic piping
+const result = ppipe(1)
+  .pipe(add, _, 1)      // 2
+  .pipe(double)         // 4
+  .pipe(square)         // 16
+  .pipe(divide, _, 8)   // 2
+  .pipe(add, _, 1)      // 3
+  .value;
+
+console.log(result); // 3
 ```
 
-An ideal solution would have been having a pipe operator (|>) but we don't have
-it. Here is where ppipe comes in.
+## Features
 
-_Order of arguments can be manipulated using the \_ property of ppipe function.
-The result of the previous function is inserted to its place if it exists in the
-arguments. It can also occur more than once if you want to pass the same
-parameter more than once. If, and only if, \_ doesn't exist among the arguments,
-the piped value will be inserted at the end._
+### Basic Piping
 
-```javascript
-const ppipe = require("ppipe");
+Chain functions together, passing the result of each to the next:
+
+```typescript
+ppipe('hello')
+  .pipe(s => s.toUpperCase())
+  .pipe(s => s + '!')
+  .value; // 'HELLO!'
+```
+
+### Placeholder Positioning
+
+Use `_` to control where the piped value is inserted:
+
+```typescript
 const _ = ppipe._;
-ppipe(1)(add, 1)(double)(square)(divide, _, 8)(add, 1)(); // 3
-```
 
-If that is too lisp-y, you can also use ".pipe".
-
-```javascript
-ppipe(1)
-  .pipe(add, 1)
-  .pipe(double)
-  .pipe(square)
-  .pipe(divide, _, 8)
-  .pipe(add, 1)(); // 3
-```
-
-And then you receive some new "requirements", which end up making the "double"
-function async...
-
-```javascript
-async function asyncDouble(x) {
-  const result = x * 2;
-  await someAPICall(result);
-  return result;
-}
-```
-
-Here are the changes you need to make:
-
-```javascript
-await ppipe(1)
-  .pipe(add, 1)
-  .pipe(asyncDouble)
-  .pipe(square)
-  .pipe(divide, _, 8)
-  .pipe(add, 1); //3 (you can also use .then and .catch)
-```
-
-Yes, ppipe automatically turns the end result into a promise, if one or more
-functions in the chain return a promise. It also waits for the resolution and
-passes the unwrapped value to the next function. You can also catch the errors
-with `.catch` like a standard promise or use try/catch in an async function. You
-meet the requirements and keep the code tidy.
-
-For consistency, the `.then` and `.catch` methods are always available, so you
-don't have to care if any function in the chain is async as long as you use
-those.
-
-So, later you receive some new "requirements", which make our now infamous
-double function return an object:
-
-```javascript
-async function asyncComplexDouble(x) {
-  const result = x * 2;
-  const someInfo = await someAPICall(result);
-  return { result, someInfo };
-}
-```
-
-Still not a problem:
-
-```javascript
-await ppipe(1)
-  .pipe(add, 1)
-  .pipe(asyncComplexDouble)
-  //pipe._ is also a proxy which saves the property accesses to pluck the prop from the
-  //previous function's result later
-  .pipe(square, _.result)
-  .pipe(divide, _, 8)
-  .pipe(add, 1); //3
-
-//well, if you think that might not be clear, you can write it like this, too
-await ppipe(1)
-  .pipe(add, 1)
-  .pipe(asyncComplexDouble)
-  .pipe(x => x.result)
-  .pipe(square)
-  .pipe(divide, _, 8)
-  .pipe(add, 1); //3
-
-//this also works
-await ppipe(1)
-  .pipe(add, 1)
-  .pipe(asyncComplexDouble)
-  //promises will be unboxed and properties will be returned as getter functions
-  //the methods will be available in the chain as well, as shown in the next example
-  .result()
-  .pipe(square)
-  .pipe(divide, _, 8)
-  .pipe(add, 1); //3
-```
-
-Let's go one step further; what if you need to access a method from the result?
-
-```javascript
-async function advancedDouble(x) {
-  const result = x * 2;
-  const someInfo = await someAPICall(result);
-  return {
-    getResult() {
-      return result;
-    },
-    someInfo
-  };
-}
-```
-
-There you go:
-
-```javascript
-await ppipe(1)
-  .pipe(add, 1)
-  .pipe(advancedDouble)
-  .getResult()
-  .pipe(square)
-  .pipe(divide, _, 8)
-  .pipe(add, 1); //3
-```
-
-## Some More Examples
-
-It is possible to expand the iterable result
-
-```javascript
-const addAll = (...x) => x.reduce((a, b) => a + b, 0)
-ppipe([1,2,3]).map(x => x + 1).pipe(addAll, ..._)(); //9
-```
-
-It is possible to reach array members:
-
-```javascript
-await ppipe(10)
-    .pipe(asyncComplexDoubleArray)
-    .pipe((x, y) => x + y, _[1], _[2]);
-```
-
-Also object properties:
-
-```javascript
+// Value inserted at placeholder position
 ppipe(10)
-    .pipe(x => ({multipliers: [10,20], value: x}))
-    .pipe((x, y) => x * y, _.multipliers[0], _.value)(); //100
+  .pipe(divide, _, 2)   // divide(10, 2) = 5
+  .value;
+
+// Without placeholder, value is appended at the end
+ppipe(10)
+  .pipe(divide, 100)    // divide(100, 10) = 10
+  .value;
+
+// Multiple placeholders insert the same value multiple times
+ppipe(5)
+  .pipe((a, b) => a + b, _, _)  // 5 + 5 = 10
+  .value;
 ```
 
-And you can omit the function altogether if you just want to extract values:
+### Async/Promise Support
 
-```javascript
-ppipe({multipliers: [10,20], value: 10}).pipe(_.value)(); //10
-await ppipe({multipliers: [10,20], value: 10}).pipe(_.value); //10
-```
+Promises are automatically handled - the chain waits for resolution and passes the unwrapped value to the next function:
 
-And as you've seen before, you can always omit the ".pipe", as long as you
-know how to keep ASI in check:
-
-```javascript
-ppipe({multipliers: [10,20], value: 10})(_.value)(); //10
-await ppipe({multipliers: [10,20], value: 10})(_.value); //10
-```
-
-## Advanced Functionality
-
-### Chain Methods / Properties
-
-You can use these from the chain (after creating one with `ppipe(val)`).
-
-#### .with(ctx)
-
-Calls the following function in chain with the given `this` value (ctx). After
-calling `.with` the chain can be continued with the methods from the ctx.
-
-```javascript
-class Example {
-  constructor(myInt) {
-    this.foo = Promise.resolve(myInt);
-  }
-  addToFoo(x) {
-    return this.foo.then(foo => foo + x);
-  }
+```typescript
+async function fetchUser(id: number) {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
 }
-await ppipe(10).with(new Example(5)).addToFoo(_); //15
+
+const userName = await ppipe(1)
+  .pipe(fetchUser)
+  .pipe(user => user.name)
+  .pipe(name => name.toUpperCase());
+
+// Or use .then()/.catch()
+ppipe(1)
+  .pipe(fetchUser)
+  .pipe(user => user.name)
+  .then(name => console.log(name))
+  .catch(err => console.error(err));
 ```
 
-Look at the test/test.js for more examples.
+### Value Extraction
 
-#### .val
+Get the current value with `.value` (or `.val`):
 
-Gets the current value from the chain. Will be a promise if any function in the
-chain returns a promise. Calling the chain with no parameters achieves the same
-result.
+```typescript
+// Sync value
+const num = ppipe(5).pipe(x => x * 2).value; // 10
 
-### Extending Ppipe
+// Async value (returns Promise)
+const asyncNum = await ppipe(Promise.resolve(5)).pipe(x => x * 2).value;
+```
 
-You can create an extended instance of ppipe via `.extend`.
+### Typed Extensions
 
-```javascript
-const newPipe = ppipe.extend({
-  divide (x, y) {
-    return x / y;
-  },
-  log(...params) {
-    console.log(...params);
-    return params[params.length - 1];
-  }
+Create reusable pipe extensions with full type inference:
+
+```typescript
+const mathPipe = ppipe.extend({
+  double: (x: number) => x * 2,
+  square: (x: number) => x * x,
+  add: (x: number, y: number) => x + y,
 });
-const res = await newPipe(10)
-  .pipe(x => x + 1)
-  .divide(_, 11)
-  .log("here is our x: ") //logs "here is our x: 1"
-  .pipe(x => x + 1) // 2
+
+const result = mathPipe(5)
+  .double()      // 10 - return type inferred as number
+  .square()      // 100
+  .add(5)        // 105
+  .value;
+
+// Extensions can be chained
+const extendedPipe = mathPipe.extend({
+  stringify: (x: number) => String(x),
+});
+
+const str = extendedPipe(5)
+  .double()
+  .stringify()   // '10' - return type inferred as string
+  .value;
 ```
 
-You can also call `.extend` on the extended ppipes. It will create a new ppipe
-with the new and existing extensions merged.
+## API Reference
+
+### `ppipe(value)`
+
+Creates a new pipe with the given initial value.
+
+```typescript
+const pipe = ppipe(initialValue);
+```
+
+### `.pipe(fn, ...args)`
+
+Pipes the current value through a function. The value is inserted at the placeholder position, or appended at the end if no placeholder is used.
+
+```typescript
+pipe.pipe(fn)              // fn(value)
+pipe.pipe(fn, _, arg2)     // fn(value, arg2)
+pipe.pipe(fn, arg1)        // fn(arg1, value)
+pipe.pipe(fn, arg1, _)     // fn(arg1, value)
+```
+
+### `.value` / `.val`
+
+Gets the current value from the chain. Returns a Promise if any function in the chain was async.
+
+### `.then(onFulfilled?, onRejected?)`
+
+Standard Promise `then` interface. Always available for consistent async handling.
+
+### `.catch(onRejected?)`
+
+Standard Promise `catch` interface. Always available for consistent async handling.
+
+### `ppipe._`
+
+The placeholder symbol for argument positioning.
+
+### `ppipe.extend(extensions)`
+
+Creates a new ppipe factory with additional methods:
+
+```typescript
+const extended = ppipe.extend({
+  methodName: (value, ...args) => result,
+});
+```
+
+Extension functions receive the piped value as their first argument.
+
+## Migration from v2.x
+
+Version 3.0 is a TypeScript rewrite that prioritizes type safety. Some dynamic features that couldn't be strictly typed have been removed:
+
+### Removed Features
+
+| Feature | v2.x | v3.x Alternative |
+|---------|------|------------------|
+| Deep property access | `_.a.b.c` | `.pipe(x => x.a.b.c)` |
+| Array spreading | `..._` | `.pipe(arr => fn(...arr))` |
+| Direct method access | `.map(fn)` | `.pipe(arr => arr.map(fn))` |
+| Context binding | `.with(ctx)` | `.pipe(fn.bind(ctx))` |
+| Callable syntax | `ppipe(val)(fn)` | `ppipe(val).pipe(fn)` |
+
+### Why These Changes?
+
+These features relied on Proxy magic that returned `any` types, breaking TypeScript's ability to infer types correctly. The v3.x API ensures:
+
+- Full IDE autocomplete support
+- Correct type inference throughout the chain
+- No `any` types in the public API
+- Compile-time error detection
+
+## Type Safety
+
+ppipe v3.x provides complete type inference:
+
+```typescript
+// Types are inferred correctly through the chain
+const result = ppipe(5)
+  .pipe(x => x * 2)           // Pipe<number>
+  .pipe(x => x.toString())    // Pipe<string>
+  .pipe(x => x.length)        // Pipe<number>
+  .value;                     // number
+
+// Async types are tracked
+const asyncResult = ppipe(Promise.resolve(5))
+  .pipe(x => x * 2)           // Pipe<number, async=true>
+  .value;                     // Promise<number>
+
+// Extension return types are inferred
+const myPipe = ppipe.extend({
+  toArray: <T>(x: T) => [x],
+});
+
+myPipe(5).toArray().value;    // number[]
+```
 
 ## Testing
 
-All the functionality is tested, with 100% coverage. This is also integrated in the build process.
+100% test coverage is maintained. To run tests:
 
-To run the tests yourself, clone the repository, install the dev dependencies, and run the npm test command.
-
-`npm install`
-
-`npm test`
+```bash
+npm install
+npm test
+```
 
 ## Contributing
 
-See
-[CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIBUTING.md).
+See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIBUTING.md).
 
 ## Changelog
 
-* v2.5.0 - placeholder can be the only argument to the .pipe, for just extracting a property or path
-* v2.4.0 - allow deep property extraction via the placeholder
-  (\_.deeply.nested.prop) (test: should be able to extract array members)
-* v2.3.0 - now supports expanding the placeholder (...\_) (test: should support
-  expanding the array result)
+### v3.0.0
 
-## Caveats
+- Complete TypeScript rewrite with strict typing
+- Full IDE autocomplete and type inference support
+- Removed features that couldn't be strictly typed (see Migration section)
+- 100% test coverage
+- Updated all dependencies to latest versions
 
-* This library was not written with performance in mind. So, it makes next to no
-  sense to use it in, say, a tight loop. Use in a web-server should be fine as
-  long as you don't have tight response-time requirements. General rule of
-  thumb: Test it before putting it into prod. There are a lot of tests written
-  for ppipe but none of them measure performance. I may improve the performance
-  in the future (some low-hanging fruits) but I'd rather avoid making any
-  guarantees. Well, there is one good news:
-  [Chrome team is working on performance improvements to the Proxy](https://v8project.blogspot.de/2017/10/optimizing-proxies.html)
-  which will very positively affect ppipe performance.
+### v2.x
 
-* It uses ES6 Proxies to do its magic. Proxies are not back-portable. 1.x.x
-  versions of ppipe didn't use proxies. So you can try using an older version
-  with a transpiler if evergreen sounds alien to you.
-  [Here](https://github.com/egeozcan/ppipe/blob/1888e9269be90f549d5c00002f7e800598c6d539/index.js)
-  is an older stable version without value extracting and context change
-  support.
+See [v2.x README](https://github.com/egeozcan/ppipe/tree/v2.6.5) for previous features.
 
-* ppipe is not typed. No type definition exists for TypeScript nor Flow. I
-  actually love TypeScript and would support it but the lack of variadic generic
-  type parameters make it next to impossible to provide type definitions for
-  ppipe. More can be read
-  [here](https://github.com/Microsoft/TypeScript/issues/5453). Also, ppipe is as
-  dynamic as it gets, giving the ability to access virtual properties/methods
-  which may belong to the provided context, the processed value or any of the
-  possible extensions.
-  [TypeScripts Type System is Turing Complete](https://github.com/Microsoft/TypeScript/issues/14833),
-  so, maybe there is a way to type all of this but I really need help about
-  that.
+## License
+
+ISC
