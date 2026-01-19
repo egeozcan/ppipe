@@ -36,3 +36,4 @@ node_modules
 /.idea/
 .aider*
 dist/
+dist-test/

@@ -17,11 +17,12 @@
 	],
 	"scripts": {
 		"build": "tsc",
-		"clean": "rm -rf dist",
+		"build:test": "tsc -p tsconfig.test.json",
+		"clean": "rm -rf dist dist-test",
 		"prebuild": "npm run clean",
 		"prepublishOnly": "npm run build",
 		"typecheck": "tsc --noEmit",
-		"test": "npm run build && nyc --reporter=text --reporter=html mocha test",
+		"test": "npm run build:test && nyc --reporter=text --reporter=html mocha dist-test/test/test.js",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
 		"lint": "eslint --fix src/"
 	},
@@ -43,6 +44,8 @@
 	"author": "Yavuz Ege Özcan",
 	"license": "ISC",
 	"devDependencies": {
+		"@types/chai": "^5.0.0",
+		"@types/mocha": "^10.0.0",
 		"@types/node": "^22.0.0",
 		"chai": "^5.0.0",
 		"coveralls": "^3.1.0",

@@ -1,31 +1,33 @@
-/* eslint quotes: "off" */
+import { assert } from "chai";
+import ppipe, { isPlaceholder, _ as exportedPlaceholder } from "../src/index";
 
-const assert = require("chai").assert;
-const ppipe = require("../dist/index.js").default;
-const { isPlaceholder, _ : exportedPlaceholder } = require("../dist/index.js");
-
-function doubleSay(str) {
+function doubleSay(str: string): string {
 	return str + ", " + str;
 }
-function capitalize(str) {
-	return str[0].toUpperCase() + str.substring(1);
+
+function capitalize(str: string): string {
+	return str[0]!.toUpperCase() + str.substring(1);
 }
-function delay(fn) {
-	return function () {
-		const args = arguments;
+
+function delay<T extends (...args: never[]) => unknown>(
+	fn: T
+): (...args: Parameters<T>) => Promise<ReturnType<T>> {
+	return function (...args: Parameters<T>): Promise<ReturnType<T>> {
 		return new Promise((resolve) =>
-			setTimeout(() => resolve(fn.apply(null, args)), 10)
+			setTimeout(() => resolve(fn(...args) as ReturnType<T>), 10)
 		);
 	};
 }
-function exclaim(str) {
+
+function exclaim(str: string): string {
 	return str + "!";
 }
-function join() {
-	const arr = Array.from(arguments);
-	return arr.join(", ");
+
+function join(...args: string[]): string {
+	return args.join(", ");
 }
-function quote(str) {
+
+function quote(str: string): string {
 	return '"' + str + '"';
 }
 
@@ -61,38 +63,41 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 	describe("placeholder positioning", function () {
 		it("should correctly insert parameters with placeholder at first position", function () {
+			const join2 = (a: string, b: string): string => [a, b].join(", ");
 			assert.equal(
-				ppipe(message).pipe(doubleSay).pipe(join, _, "I said").pipe(exclaim)
+				ppipe(message).pipe(doubleSay).pipe(join2, _, "I said").pipe(exclaim)
 					.value,
-				exclaim(join(doubleSay(message), "I said"))
+				exclaim(join2(doubleSay(message), "I said"))
 			);
 		});
 
 		it("should append value at end when no placeholder exists", function () {
+			const join2 = (a: string, b: string): string => [a, b].join(", ");
 			assert.equal(
-				ppipe(message).pipe(doubleSay).pipe(join, "I said").pipe(exclaim)
-					.value,
-				exclaim(join("I said", doubleSay(message)))
+				ppipe(message).pipe(doubleSay).pipe(join2, "I said").pipe(exclaim).value,
+				exclaim(join2("I said", doubleSay(message)))
 			);
 		});
 
 		it("should correctly insert parameters on multiple functions", function () {
+			const join2 = (a: string, b: string): string => [a, b].join(", ");
+			const join3 = (a: string, b: string, c: string): string => [a, b, c].join(", ");
 			assert.equal(
 				ppipe(message)
 					.pipe(doubleSay)
-					.pipe(join, _, "I said")
+					.pipe(join2, _, "I said")
 					.pipe(exclaim)
-					.pipe(join, "and suddenly", _, "without thinking").value,
-				join(
+					.pipe(join3, "and suddenly", _, "without thinking").value,
+				join3(
 					"and suddenly",
-					exclaim(join(doubleSay(message), "I said")),
+					exclaim(join2(doubleSay(message), "I said")),
 					"without thinking"
 				)
 			);
 		});
 
 		it("should be able to insert value more than once with multiple placeholders", function () {
-			const addBoth = (a, b) => a + b;
+			const addBoth = (a: number, b: number): number => a + b;
 			assert.equal(ppipe(5).pipe(addBoth, _, _).value, 10);
 		});
 	});
@@ -111,7 +116,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 					})
 					.pipe(doubleSay).value;
 			} catch (error) {
-				caught = error.message === "foo";
+				caught = (error as Error).message === "foo";
 			}
 			assert.equal(caught, true);
 		});
@@ -126,7 +131,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 					.pipe(doubleSay)
 					.pipe(exclaim).value;
 			} catch (error) {
-				caught = error.message === "test error";
+				caught = (error as Error).message === "test error";
 			}
 			assert.equal(caught, true);
 		});
@@ -141,7 +146,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 		it("should wrap promise factories in the middle of the chain", function () {
 			return ppipe(message)
-				.pipe(Promise.resolve.bind(Promise))
+				.pipe(Promise.resolve.bind(Promise) as (x: string) => Promise<string>)
 				.pipe(delay(capitalize))
 				.pipe(exclaim)
 				.then((res) => {
@@ -227,7 +232,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 				.catch(() => {
 					caught = true;
 				})
-				.then(() => assert(caught, true));
+				.then(() => assert(caught, "error should have been caught"));
 		});
 
 		it("should pass the errors when thrown in async chain", function () {
@@ -235,7 +240,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 			return ppipe(message)
 				.pipe(doubleSay)
 				.pipe(delay(quote))
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("oh noes");
 				})
 				.pipe(delay(exclaim))
@@ -243,7 +248,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 				.catch(() => {
 					caught = true;
 				})
-				.then(() => assert(caught, true));
+				.then(() => assert(caught, "error should have been caught"));
 		});
 	});
 
@@ -254,7 +259,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 	describe("extensions", function () {
 		it("should support extensions", async function () {
 			const newPipe = ppipe.extend({
-				assertEqAndIncrement: (x, y) => {
+				assertEqAndIncrement: (x: number, y: number): number => {
 					assert.equal(x, y);
 					return x + 1;
 				},
@@ -267,13 +272,13 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 		it("should support re-extending an extended ppipe", async function () {
 			const newPipe = ppipe.extend({
-				assertEqAndIncrement: (x, y) => {
+				assertEqAndIncrement: (x: number, y: number): number => {
 					assert.equal(x, y);
 					return x + 1;
 				},
 			});
 			const newerPipe = newPipe.extend({
-				divide: (x, y) => {
+				divide: (x: number, y: number): number => {
 					return x / y;
 				},
 			});
@@ -286,9 +291,9 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 		it("should support typed extensions with full inference", async function () {
 			const myExtensions = {
-				double: (x) => x * 2,
-				add: (x, y) => x + y,
-				stringify: (x) => String(x),
+				double: (x: number): number => x * 2,
+				add: (x: number, y: number): number => x + y,
+				stringify: (x: number): string => String(x),
 			};
 
 			const myPipe = ppipe.extend(myExtensions);
@@ -309,9 +314,9 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should handle rejected promise at start of chain", async function () {
 			let caught = false;
 			await ppipe(Promise.reject(new Error("start error")))
-				.pipe((x) => x + "!")
+				.pipe((x: string) => x + "!")
 				.catch((err) => {
-					caught = err.message === "start error";
+					caught = (err as Error).message === "start error";
 				});
 			assert.equal(caught, true);
 		});
@@ -323,7 +328,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 				.then(() => {
 					throw new Error("then error");
 				})
-				.catch((err) => {
+				.catch((err: Error) => {
 					caught = err.message === "then error";
 				});
 			assert.equal(caught, true);
@@ -337,13 +342,13 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should handle .catch() on sync error with handler that throws", async function () {
 			let caught = false;
 			await ppipe("hello")
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("original");
 				})
-				.catch(() => {
+				.catch((): string => {
 					throw new Error("catch error");
 				})
-				.catch((err) => {
+				.catch((err: Error) => {
 					caught = err.message === "catch error";
 				});
 			assert.equal(caught, true);
@@ -353,12 +358,12 @@ describe("ppipe (TypeScript rewrite)", function () {
 			let caught = false;
 			try {
 				await ppipe("hello")
-					.pipe(() => {
+					.pipe((): string => {
 						throw new Error("no handler");
 					})
 					.catch();
 			} catch (err) {
-				caught = err.message === "no handler";
+				caught = (err as Error).message === "no handler";
 			}
 			assert.equal(caught, true);
 		});
@@ -377,7 +382,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 		it("should handle .then() with onRejected for sync errors", async function () {
 			const res = await ppipe("hello")
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("sync error");
 				})
 				.then(
@@ -390,24 +395,27 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should handle .then() with onRejected that throws", async function () {
 			let caught = false;
 			await ppipe("hello")
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("original");
 				})
 				.then(
 					() => "fulfilled",
-					() => {
+					(): string => {
 						throw new Error("onRejected error");
 					}
 				)
-				.catch((err) => {
+				.catch((err: Error) => {
 					caught = err.message === "onRejected error";
 				});
 			assert.equal(caught, true);
 		});
 
 		it("should return undefined for unknown properties", function () {
-			const pipe = ppipe("hello").pipe((x) => x);
-			assert.equal(pipe.unknownProperty, undefined);
+			const pipe = ppipe("hello").pipe((x) => x) as unknown as Record<
+				string,
+				unknown
+			>;
+			assert.equal(pipe["unknownProperty"], undefined);
 		});
 
 		it("should correctly identify placeholders with isPlaceholder", function () {
@@ -420,7 +428,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 		});
 
 		it("should use directly exported placeholder", function () {
-			const res = ppipe(5).pipe((a, b) => a + b, exportedPlaceholder, 3).value;
+			const res = ppipe(5).pipe((a: number, b: number) => a + b, exportedPlaceholder, 3).value;
 			assert.equal(res, 8);
 		});
 
@@ -431,7 +439,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 					.pipe(() => Promise.reject(new Error("async reject")))
 					.catch();
 			} catch (err) {
-				caught = err.message === "async reject";
+				caught = (err as Error).message === "async reject";
 			}
 			assert.equal(caught, true);
 		});
@@ -439,11 +447,11 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should handle throw inside async settled chain", async function () {
 			let caught = false;
 			await ppipe(Promise.resolve("test"))
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("throw in settled");
 				})
 				.catch((err) => {
-					caught = err.message === "throw in settled";
+					caught = (err as Error).message === "throw in settled";
 				});
 			assert.equal(caught, true);
 		});
@@ -462,7 +470,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 					.pipe(() => Promise.reject(new Error("value error")))
 					.value;
 			} catch (err) {
-				caught = err.message === "value error";
+				caught = (err as Error).message === "value error";
 			}
 			assert.equal(caught, true);
 		});
@@ -470,11 +478,11 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should reject when .then() on sync error without onRejected", async function () {
 			let caught = false;
 			await ppipe("test")
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("then no handler");
 				})
 				.then((x) => x + "!")
-				.catch((err) => {
+				.catch((err: Error) => {
 					caught = err.message === "then no handler";
 				});
 			assert.equal(caught, true);
@@ -484,8 +492,8 @@ describe("ppipe (TypeScript rewrite)", function () {
 			let caught = false;
 			await ppipe(Promise.resolve("test"))
 				.pipe(() => Promise.reject(new Error("async then error")))
-				.then((x) => x + "!")
-				.catch((err) => {
+				.then((x: string) => x + "!")
+				.catch((err: Error) => {
 					caught = err.message === "async then error";
 				});
 			assert.equal(caught, true);
@@ -495,7 +503,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 			const res = await ppipe(Promise.resolve("test"))
 				.pipe(() => Promise.reject(new Error("handled")))
 				.then(
-					(x) => x + "!",
+					(x: string) => x + "!",
 					() => "caught by onRejected"
 				);
 			assert.equal(res, "caught by onRejected");
@@ -503,7 +511,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 
 		it("should handle .catch() on sync error with successful handler", async function () {
 			const res = await ppipe("test")
-				.pipe(() => {
+				.pipe((): string => {
 					throw new Error("caught");
 				})
 				.catch(() => "recovered");
@@ -522,7 +530,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 					.pipe(() => Promise.reject(new Error("val error")))
 					.val;
 			} catch (err) {
-				caught = err.message === "val error";
+				caught = (err as Error).message === "val error";
 			}
 			assert.equal(caught, true);
 		});
@@ -542,7 +550,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 		});
 
 		it("should spread arrays via lambda instead of ..._", async function () {
-			const addAll = (...params) => {
+			const addAll = (...params: number[]): number => {
 				return params.reduce((a, b) => a + b, 0);
 			};
 			const res = await ppipe(1)
@@ -561,7 +569,7 @@ describe("ppipe (TypeScript rewrite)", function () {
 		it("should bind context via fn.bind() instead of .with()", function () {
 			const obj = {
 				multiplier: 10,
-				multiply(x) {
+				multiply(x: number): number {
 					return x * this.multiplier;
 				},
 			};
