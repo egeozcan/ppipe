@@ -2,7 +2,7 @@
 // Placeholder Implementation
 // ==========================================
 
-import { PlaceholderBrand, type PlaceholderType } from "./types";
+import { PlaceholderBrand, type PlaceholderType } from "./types.js";
 
 // Internal placeholder class with the brand
 class PlaceholderImpl implements PlaceholderType {

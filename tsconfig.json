@@ -20,15 +20,15 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
 
-    // Module settings
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // Module settings (ESM)
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
     // Output settings
     "target": "ES2020",
-    "outDir": "./dist/cjs",
+    "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,

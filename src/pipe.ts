@@ -2,8 +2,8 @@
 // Pipe Implementation (Zero Type Assertions)
 // ==========================================
 
-import type { Extensions, PipeWithExtensions, CombineAsync, IsAsync } from "./types";
-import { isPlaceholder } from "./placeholder";
+import type { Extensions, PipeWithExtensions, CombineAsync, IsAsync } from "./types.js";
+import { isPlaceholder } from "./placeholder.js";
 
 // ==========================================
 // Type-safe utilities

@@ -41,7 +41,7 @@ export default tseslint.config(
 			"no-unreachable": "error",
 			"no-extra-boolean-cast": "off",
 			"no-unused-vars": "off",
-			"@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
 			"no-empty": "error",
 			"no-useless-escape": "off",
 			"comma-spacing": [
@@ -235,4 +235,14 @@ export default tseslint.config(
 	{
 		ignores: ["dist/", "dist-test/", "node_modules/"],
 	},
+	{
+		// Test files can use type assertions for testing edge cases
+		files: ["test/**/*.ts"],
+		rules: {
+			"@typescript-eslint/consistent-type-assertions": "off",
+			"@typescript-eslint/no-non-null-assertion": "off",
+			// Allow bracket notation for index signatures (TS noPropertyAccessFromIndexSignature)
+			"dot-notation": "off",
+		},
+	}
 );

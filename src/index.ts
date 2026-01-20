@@ -2,13 +2,13 @@
 // ppipe - Strictly-Typed Piping Library
 // ==========================================
 
-import type { Extensions, PipeFactory, PipeWithExtensions, IsAsync } from "./types";
-import { _ } from "./placeholder";
-import { createPipe } from "./pipe";
+import type { Extensions, PipeFactory, PipeWithExtensions, IsAsync } from "./types.js";
+import { _ } from "./placeholder.js";
+import { createPipe } from "./pipe.js";
 
 // Re-export types for consumers
-export type { Extensions, Pipe, PipeFactory, PipeWithExtensions, PlaceholderType } from "./types";
-export { isPlaceholder } from "./placeholder";
+export type { Extensions, Pipe, PipeFactory, PipeWithExtensions, PlaceholderType } from "./types.js";
+export { isPlaceholder } from "./placeholder.js";
 
 // ==========================================
 // Factory Creation
