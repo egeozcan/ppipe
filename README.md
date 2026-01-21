@@ -138,6 +138,31 @@ const str = extendedPipe(5)
   .value;
 ```
 
+### Generic Pass-Through Extensions
+
+Generic identity functions like `log` or `tap` preserve the pipe's type automatically:
+
+```typescript
+const pp = ppipe.extend({
+  log: <T>(value: T, label?: string): T => {
+    console.log(label ?? 'value:', value);
+    return value;
+  },
+});
+
+// Type is preserved through .log() - no type loss!
+pp(8)
+  .log('start')     // logs: "start: 8"
+  .pipe(x => x + 3) // x is number, not unknown
+  .log('end')       // logs: "end: 11"
+  .value;           // 11
+
+pp('hello')
+  .log()
+  .pipe(s => s.toUpperCase()) // s is string
+  .value;                      // 'HELLO'
+```
+
 ## API Reference
 
 ### `ppipe(value)`
@@ -233,6 +258,13 @@ const myPipe = ppipe.extend({
 });
 
 myPipe(5).toArray().value;    // number[]
+
+// Generic identity extensions preserve the pipe's type
+const debugPipe = ppipe.extend({
+  log: <T>(value: T): T => { console.log(value); return value; },
+});
+
+debugPipe(5).log().pipe(x => x * 2).value;  // x is number, result is number
 ```
 
 ## Testing
@@ -254,6 +286,7 @@ See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIB
 
 - Complete TypeScript rewrite with strict typing
 - Full IDE autocomplete and type inference support
+- Generic pass-through extensions preserve pipe type (e.g., `log`, `tap`)
 - Removed features that couldn't be strictly typed (see Migration section)
 - 100% test coverage on source files
 - Strict ESLint rules disable all TypeScript escape hatches:
