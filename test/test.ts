@@ -316,6 +316,49 @@ describe("ppipe (TypeScript rewrite)", () => {
 			// Inherited property should not be added as extension method
 			assert.equal(pipe["inheritedFn"], undefined);
 		});
+
+		it("should preserve type through generic pass-through extensions", () => {
+			// Generic identity function - should preserve pipe's type
+			const pp = ppipe.extend({
+				log: <T>(value: T, label?: string): T => {
+					// Side effect (would normally console.log)
+					void label;
+
+					return value;
+				},
+			});
+
+			// Type should be preserved through .log() - x should be number, not unknown
+			const result = pp(8)
+				.log()
+				.pipe((x) => x + 3).value;
+
+			assert.equal(result, 11);
+
+			// Should work with label parameter
+			const result2 = pp(8)
+				.log("start")
+				.pipe((x) => x * 2)
+				.log("end").value;
+
+			assert.equal(result2, 16);
+
+			// Should work with different types
+			const strResult = pp("hello")
+				.log()
+				.pipe((s) => s.toUpperCase()).value;
+
+			assert.equal(strResult, "HELLO");
+
+			// Chaining multiple logs preserves type
+			const chainResult = pp(10)
+				.log("a")
+				.log("b")
+				.log("c")
+				.pipe((x) => x / 2).value;
+
+			assert.equal(chainResult, 5);
+		});
 	});
 
 	// ==========================================

@@ -2,7 +2,7 @@
 // Pipe Implementation (Zero Type Assertions)
 // ==========================================
 
-import type { Extensions, PipeWithExtensions, CombineAsync, IsAsync } from "./types.js";
+import type { Extensions, PipeWithExtensions, CombineAsync, IsAsync, ExtensionResultType } from "./types.js";
 import { isPlaceholder } from "./placeholder.js";
 
 // ==========================================
@@ -257,11 +257,17 @@ class PipeImpl<T, E extends Extensions, _Async extends boolean> {
 // Extension method factory
 // ==========================================
 
-type ExtensionMethodImpl<_T, E extends Extensions, Async extends boolean, K extends keyof E> = E[K] extends (
-	value: infer _V,
+type ExtensionMethodImpl<T, E extends Extensions, Async extends boolean, K extends keyof E> = E[K] extends (
+	value: infer V,
 	...args: infer A
 ) => infer R
-	? (...args: A) => PipeWithExtensions<Awaited<R>, E, CombineAsync<Async, IsAsync<R>>>
+	? (
+			...args: A
+		) => PipeWithExtensions<
+			Awaited<ExtensionResultType<T, V, R>>,
+			E,
+			CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
+		>
 	: never;
 
 // Type predicate to safely narrow unknown to callable

@@ -245,16 +245,33 @@ export interface Pipe<T, E extends Extensions = Record<string, never>, Async ext
 export type PipeWithExtensions<T, E extends Extensions, Async extends boolean> = Pipe<T, E, Async> &
 	ExtensionMethods<T, E, Async>;
 
+// Helper to detect generic identity functions
+// For generic functions like <T>(value: T) => T, TypeScript infers both V and R as `unknown`
+// For concrete functions like (value: number) => number, V and R are `number`
+// `unknown extends X` is true only when X is `unknown` (or `any`)
+export type IsGenericIdentity<V, R> = unknown extends V ? (unknown extends R ? true : false) : false;
+
+// Determines the result type for extension methods
+// Preserves pipe's T for generic identity functions, otherwise uses the function's return type R
+export type ExtensionResultType<PipeT, V, R> = IsGenericIdentity<V, R> extends true ? PipeT : R;
+
 // Maps extension functions to pipe methods
 // Each extension fn(value, ...args) becomes pipe.fn(...args)
 // Returns PipeWithExtensions to preserve extension methods through the chain
 // Only maps keys where the value is a function
-export type ExtensionMethods<_T, E extends Extensions, Async extends boolean> = {
+// For generic identity functions (where V and R are both unknown), preserves the pipe's type T
+export type ExtensionMethods<T, E extends Extensions, Async extends boolean> = {
 	[K in keyof E as E[K] extends (...args: infer _Args) => unknown ? K : never]: E[K] extends (
-		value: infer _V,
+		value: infer V,
 		...args: infer A
 	) => infer R
-		? (...args: A) => PipeWithExtensions<Awaited<R>, E, CombineAsync<Async, IsAsync<R>>>
+		? (
+				...args: A
+			) => PipeWithExtensions<
+				Awaited<ExtensionResultType<T, V, R>>,
+				E,
+				CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
+			>
 		: never;
 };
 
