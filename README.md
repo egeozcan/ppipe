@@ -282,24 +282,7 @@ See [CONTRIBUTING](https://github.com/egeozcan/ppipe/blob/master/.github/CONTRIB
 
 ## Changelog
 
-### v3.0.0
-
-- Complete TypeScript rewrite with strict typing
-- Full IDE autocomplete and type inference support
-- Generic pass-through extensions preserve pipe type (e.g., `log`, `tap`)
-- Removed features that couldn't be strictly typed (see Migration section)
-- 100% test coverage on source files
-- Strict ESLint rules disable all TypeScript escape hatches:
-  - No `any` types
-  - No type assertions (`as`)
-  - No ts-ignore/ts-expect-error comments
-  - No non-null assertions (`!`)
-- Discriminated union state management for type-safe async/sync/error handling
-- Updated all dependencies to latest versions
-
-### v2.x
-
-See [v2.x README](https://github.com/egeozcan/ppipe/tree/v2.6.5) for previous features.
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 
