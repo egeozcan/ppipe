@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2025-01-23
+
+### Added
+
+- **Arity checking**: Functions now receive compile-time errors when passed extra arguments
+  - `ppipe(8).pipe(subtract, _, 3, 5, 10)` now errors if `subtract` only takes 2 params
+  - Uses `ExactArityFn<Fn, N>` helper type to enforce exact parameter count
+  - Variadic functions (rest params) are allowed through the check
+- Type-level test file (`test/types.test.ts`) with `@ts-expect-error` validation
+- New npm script `typecheck:arity` for running type-level tests
+
+### Changed
+
+- Placeholder overloads now use `Awaited<T>` for contextual typing of lambda parameters
+- Overloads use `ReturnType<Fn>` instead of generic `R` for better type extraction
+
+### Documentation
+
+- Updated CLAUDE.md with arity checking system design
+- Updated README.md with type safety strengths and limitations
+
 ## [3.1.0] - 2025-01-21
 
 ### Added

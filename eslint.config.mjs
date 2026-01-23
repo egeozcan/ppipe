@@ -233,7 +233,7 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ["dist/", "dist-test/", "node_modules/"],
+		ignores: ["dist/", "dist-test/", "node_modules/", "test/types.test.ts"],
 	},
 	{
 		// Test files can use type assertions for testing edge cases

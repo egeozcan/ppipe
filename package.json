@@ -1,6 +1,6 @@
 {
 	"name": "ppipe",
-	"version": "3.1.0",
+	"version": "3.2.0",
 	"description": "Strictly-typed piping without the operator support",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -22,6 +22,7 @@
 		"prebuild": "npm run clean",
 		"prepublishOnly": "npm run build",
 		"typecheck": "tsc --noEmit",
+		"typecheck:arity": "tsc test/types.test.ts --noEmit --strict --module esnext --moduleResolution node",
 		"test": "npm run build:test && c8 --include='dist-test/src/**/*.js' --reporter=text --reporter=html mocha dist-test/test/test.js",
 		"coverage": "c8 check-coverage --include='dist-test/src/**/*.js' --lines 100 --functions 100 --branches 100 --statements 100",
 		"lint": "eslint --fix src/ test/",

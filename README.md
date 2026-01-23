@@ -237,7 +237,7 @@ These features relied on Proxy magic that returned `any` types, breaking TypeScr
 
 ## Type Safety
 
-ppipe v3.x provides complete type inference:
+ppipe v3.x provides complete type inference with **arity checking** - passing extra arguments to functions that don't expect them produces compile-time errors:
 
 ```typescript
 // Types are inferred correctly through the chain
@@ -265,6 +265,50 @@ const debugPipe = ppipe.extend({
 });
 
 debugPipe(5).log().pipe(x => x * 2).value;  // x is number, result is number
+```
+
+### Arity Checking
+
+Functions are checked to ensure they receive the correct number of arguments:
+
+```typescript
+const subtract = (a: number, b: number) => a - b;
+
+// ✓ Correct - 2-param function with 2 args
+ppipe(10).pipe(subtract, _, 3).value;  // 7
+
+// ✗ Error - 2-param function with 4 args
+ppipe(10).pipe(subtract, _, 3, 5, 10).value;
+// Type error: Property 'value' does not exist on type 'never'
+```
+
+### Type Safety Strengths
+
+- **Full inference for lambdas** - Untyped lambdas get correct types for 1-4 arguments
+- **Arity mismatch detection** - Extra arguments to named functions produce compile errors
+- **Async tracking** - The type system tracks whether the chain contains any async operations
+- **Extension type preservation** - Generic identity extensions (like `log`) preserve the pipe's type
+- **No `any` in public API** - Complete type safety throughout
+
+### Type Safety Limitations
+
+| Scenario | Behavior |
+|----------|----------|
+| 5+ args with untyped lambda | Requires explicit type annotations |
+| Arity errors | Appear on `.value` access, not at `.pipe()` call |
+| Variadic functions | Allowed through arity check (by design) |
+
+```typescript
+// 5+ args needs type annotations
+ppipe(1).pipe(
+  (a: number, b: string, c: boolean, d: number, e: string) => a + d,
+  _, "x", true, 4, "end"
+).value;  // ✓ Works
+
+ppipe(1).pipe(
+  (a, b, c, d, e) => a,  // ✗ 'a' will be 'never' - use typed lambda
+  _, "x", true, 4, "end"
+);
 ```
 
 ## Testing

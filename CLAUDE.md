@@ -61,3 +61,28 @@ All TypeScript escape hatches are disabled via ESLint:
 - `createPipe` async/sync branch returns
 
 **IMPORTANT: Never add any new type assertions, `any` types, ts-ignore comments, or other TypeScript escape hatches. The 4 existing boundary assertions are the maximum allowed. If new code cannot be written without escape hatches, restructure the approach using type predicates, discriminated unions, or function overloads instead.**
+
+### Arity Checking System
+
+The type system enforces that functions receive the correct number of arguments. This prevents silent bugs where extra arguments are passed to functions that don't expect them.
+
+**How it works:**
+
+1. **`ExactArityFn<Fn, N>` helper type** - Only matches functions with exactly N parameters (or variadic functions). When a function has wrong arity, the type becomes `never` and the overload doesn't match.
+
+2. **Explicit overloads (1-4 args)** - Each overload uses `ExactArityFn<Fn, N>` to ensure the function's parameter count matches the number of arguments passed.
+
+3. **Variadic fallback (5+ args)** - Uses `VariadicPipeResult` which checks `FinalArgs<Args, T> extends Parameters<Fn>`. Returns `never` on mismatch.
+
+**Example of caught error:**
+```typescript
+const subtract = (a: number, b: number) => a - b;  // 2 params
+ppipe(8).pipe(subtract, _, 3, 5, 10);  // 4 args - type error!
+// Result is 'never', accessing .value produces: "Property 'value' does not exist on type 'never'"
+```
+
+**Design tradeoffs:**
+- Error appears when accessing `.value`, not at the `.pipe()` call site (TypeScript limitation)
+- Untyped lambdas work for 1-4 args due to contextual typing from `Awaited<T>` in placeholder positions
+- 5+ args require typed functions/lambdas because variadic fallback can't provide contextual typing
+- Variadic functions (`...rest` params) are allowed through the arity check

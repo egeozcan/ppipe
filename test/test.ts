@@ -614,6 +614,51 @@ describe("ppipe (TypeScript rewrite)", () => {
 	});
 
 	// ==========================================
+	// Arity Checking (compile-time type safety)
+	// ==========================================
+
+	describe("arity checking", () => {
+		// NOTE: These tests verify runtime behavior. The type-level arity checking
+		// is tested in test-hybrid.ts (compile-time @ts-expect-error directives).
+		// This section documents that arity mismatches produce 'never' type at compile time.
+
+		it("should work correctly when function arity matches call arity", () => {
+			const subtract = (a: number, b: number): number => a - b;
+			const result = ppipe(10).pipe(subtract, _, 3).value;
+
+			assert.equal(result, 7);
+		});
+
+		it("should work correctly with 3-arg functions", () => {
+			const fn3 = (a: number, b: number, c: number): number => a + b + c;
+			const result = ppipe(1).pipe(fn3, _, 2, 3).value;
+
+			assert.equal(result, 6);
+		});
+
+		it("should work correctly with 4-arg functions", () => {
+			const fn4 = (a: number, b: string, c: boolean, d: number): string => `${a}-${b}-${c}-${d}`;
+			const result = ppipe(1).pipe(fn4, _, "x", true, 4).value;
+
+			assert.equal(result, "1-x-true-4");
+		});
+
+		it("should work correctly with 5+ arg functions via variadic fallback", () => {
+			const fn5 = (a: number, b: string, c: boolean, d: number, e: string): string => `${a}-${b}-${c}-${d}-${e}`;
+			const result = ppipe(1).pipe(fn5, _, "x", true, 4, "end").value;
+
+			assert.equal(result, "1-x-true-4-end");
+		});
+
+		it("should work with variadic functions", () => {
+			const sum = (...nums: number[]): number => nums.reduce((a, b) => a + b, 0);
+			const result = ppipe(1).pipe(sum, _, 2, 3, 4, 5).value;
+
+			assert.equal(result, 15);
+		});
+	});
+
+	// ==========================================
 	// Alternatives for Dropped Features
 	// ==========================================
 
