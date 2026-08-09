@@ -77,6 +77,16 @@ type _V7 = Expect<Equals<typeof v7, number | Promise<number>>>;
 const v8 = ppipe(maybe).pipe((x: number) => x + 1).value;
 type _V8 = Expect<Equals<typeof v8, number | Promise<number>>>;
 
+// A bare thenable counts as async. The runtime awaits anything with a callable
+// .then (isThenable), so classifying only Promise here would type `.value` as a
+// plain value while handing back a Promise.
+declare const thenable: PromiseLike<number>;
+const v10 = ppipe(thenable).value;
+type _V10 = Expect<Equals<typeof v10, Promise<number>>>;
+
+const v11 = ppipe(5).pipe((x: number): PromiseLike<string> => Promise.resolve(`${x}`)).value;
+type _V11 = Expect<Equals<typeof v11, Promise<string>>>;
+
 // `never` is not a Promise.
 const v9 = ppipe(5).pipe((x: number): never => {
 	throw new Error(`${x}`);
@@ -254,6 +264,51 @@ type _G2 = Expect<Equals<typeof g2, string>>;
 
 const g3 = tapped({ a: 1 }).tap().pipe((o: { a: number }) => o.a).value;
 type _G3 = Expect<Equals<typeof g3, number>>;
+
+// Concretely typed extra parameters do not disturb pass-through detection.
+const labelled = ppipe.extend({ log: <G>(v: G, label?: string): G => (label ? v : v) });
+const g4 = labelled(5).log("x").value;
+type _G4 = Expect<Equals<typeof g4, number>>;
+
+// But a *correlated* generic - where an extra parameter shares the type variable -
+// is not an identity function. Its result comes from that argument, so the pipe's
+// type must NOT be preserved; doing so would claim `number` for a call returning
+// a string.
+const correlated = ppipe.extend({ replace: <G>(_v: G, replacement: G): G => replacement });
+const g5 = correlated(1).replace("wrong").value;
+type _G5 = Expect<Equals<typeof g5, unknown>>;
+// @ts-expect-error - must not be assignable to number; the runtime returns "wrong"
+const g5Bad: number = correlated(1).replace("wrong").value;
+
+// ============================================
+// TEST 8b: overloaded extensions resolve against any matching signature
+// ============================================
+// `infer` sees only the last overload, so a guard comparing against the inferred
+// parameter type would reject the string call below purely because the number
+// overload is declared last.
+
+function normalize(v: string): string;
+function normalize(v: number): number;
+function normalize(v: unknown): unknown {
+	return v;
+}
+
+const over2 = ppipe.extend({ normalize });
+
+// Admitted, as on master - the guard must not reject a legitimate string call.
+const g6 = over2("ok").normalize();
+// The RESULT type is still drawn from the last overload, so this is `number`
+// rather than `string`. That is the same limitation documented for piped
+// overloaded functions in TEST 13, present on master too, and not fixable while
+// result types come from ReturnType/infer. Pinned so the behaviour cannot drift
+// unnoticed; wrap in a lambda when the precise type matters.
+type _G6 = Expect<Equals<typeof g6.value, number>>;
+
+const g7 = over2(5).normalize();
+type _G7 = Expect<Equals<typeof g7.value, number>>;
+
+// @ts-expect-error - no overload accepts a boolean
+over2(true).normalize();
 
 // ============================================
 // TEST 9: extend() overrides same-named extensions

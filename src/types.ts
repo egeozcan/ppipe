@@ -18,7 +18,10 @@ export type PlaceholderType = { readonly [PlaceholderBrand]: true };
 // hands back a Promise.
 // The `never` guard is only there because a naked `T extends ...` distributes over
 // the empty union and yields `never` rather than a boolean.
-export type IsAsync<T> = [T] extends [never] ? false : T extends Promise<unknown> ? true : false;
+// Tests PromiseLike, not Promise. The runtime decides via isThenable() - anything
+// with a callable .then is awaited - so checking Promise here would classify a
+// bare thenable as sync and type .value as T while returning a Promise.
+export type IsAsync<T> = [T] extends [never] ? false : T extends PromiseLike<unknown> ? true : false;
 
 // Extensions base type - a record with string keys
 // The actual function types are preserved through the generic parameter E
@@ -334,9 +337,18 @@ export type PipeWithExtensions<T, E extends Extensions, Async extends boolean> =
 // `unknown extends X` is true only when X is `unknown` (or `any`)
 export type IsGenericIdentity<V, R> = unknown extends V ? (unknown extends R ? true : false) : false;
 
-// Determines the result type for extension methods
-// Preserves pipe's T for generic identity functions, otherwise uses the function's return type R
-export type ExtensionResultType<PipeT, V, R> = IsGenericIdentity<V, R> extends true ? PipeT : R;
+// Determines the result type for extension methods.
+// Preserves the pipe's T for generic identity functions, otherwise uses the return type R.
+//
+// The A (trailing argument) check guards a false positive in the heuristic above.
+// `<G>(v: G, replacement: G) => G` infers V and R as unknown exactly like a true
+// identity function does, but its result comes from the *second* argument, so
+// preserving PipeT would claim `number` for a call returning a string. A trailing
+// parameter that infers as `unknown` is the signature of such a correlated generic,
+// so fall back to R (itself unknown) and let the caller narrow. Concretely typed
+// extra parameters - `<G>(v: G, label?: string) => G` - are unaffected.
+export type ExtensionResultType<PipeT, V, R, A extends unknown[] = []> =
+	IsGenericIdentity<V, R> extends true ? (unknown extends A[number] ? R : PipeT) : R;
 
 // Maps extension functions to pipe methods
 // Each extension fn(value, ...args) becomes pipe.fn(...args)
@@ -344,21 +356,28 @@ export type ExtensionResultType<PipeT, V, R> = IsGenericIdentity<V, R> extends t
 // Only maps keys where the value is a function
 // For generic identity functions (where V and R are both unknown), preserves the pipe's type T
 //
-// The `Awaited<T> extends V` guard keeps an extension off pipes it cannot accept:
-// an extension taking a string is not offered on a pipe holding a number. Generic
-// pass-through extensions infer V as `unknown`, so they remain available everywhere.
+// The guard keeps an extension off pipes it cannot accept: an extension taking a
+// string is not offered on a pipe holding a number. Generic pass-through extensions
+// accept any value, so they remain available everywhere.
+//
+// The check is an assignability probe - "is E[K] callable with Awaited<T> first?" -
+// rather than a comparison against the inferred V. `infer` on an overloaded function
+// only ever sees its LAST signature, so comparing against V would reject
+// `ext("ok").normalize()` for an overloaded `(v: string): string / (v: number): number`
+// purely because the number overload happens to be declared last. Assignability
+// considers every overload, so the call is admitted when any signature fits.
 export type ExtensionMethods<T, E extends Extensions, Async extends boolean> = {
 	[K in keyof E as E[K] extends (...args: infer _Args) => unknown ? K : never]: E[K] extends (
 		value: infer V,
 		...args: infer A
 	) => infer R
-		? Awaited<T> extends V
+		? E[K] extends (value: Awaited<T>, ...args: A) => unknown
 			? (
 					...args: A
 				) => PipeWithExtensions<
-					Awaited<ExtensionResultType<T, V, R>>,
+					Awaited<ExtensionResultType<T, V, R, A>>,
 					E,
-					CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
+					CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R, A>>>
 				>
 			: never
 		: never;

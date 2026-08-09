@@ -340,17 +340,28 @@ Argument *types* are checked alongside the count, in both placeholder and traili
 | Variadic functions | Allowed through arity check (by design) |
 | Zero-parameter functions | Accepted; the value is passed and ignored (by design) |
 
-**Overloaded functions.** Arity and return types are derived via `Parameters<Fn>` / `ReturnType<Fn>`,
-which only see the final overload signature. Piping an overloaded function can therefore infer the
-wrong result type. Wrap it in a lambda to pin the intended signature:
+**Overloaded functions — unsound, not merely imprecise.** Arity and return types are derived via
+`Parameters<Fn>` / `ReturnType<Fn>`, which only see the final overload signature. The inferred type
+can therefore disagree with the value actually produced, so this is a genuine hole and not just a
+loss of precision:
 
 ```typescript
 function over(a: number, b: number): number;
 function over(a: string, b: string): string;
 
-ppipe(5).pipe(over, _, 3);                    // ✗ infers string, from the last overload
-ppipe(5).pipe((a: number) => over(a, 3));     // ✓ number
+const s = ppipe(5).pipe(over, _, 3).value;  // typed string; at runtime it is the number 5
+s.toUpperCase();                            // compiles, throws
 ```
+
+The same applies to an overloaded function used as an extension. Wrap it in a lambda to pin the
+intended signature:
+
+```typescript
+ppipe(5).pipe((a: number) => over(a, 3)).value;   // ✓ number
+```
+
+This is a TypeScript limitation with no fix available inside the library — there is no way to
+recover a full overload set from a type. Prefer non-overloaded functions in pipes.
 
 **Zero-parameter functions.** `.pipe(fn)` always calls `fn` with the current value, but a function
 that declares no parameters is still accepted — this is standard TypeScript assignability, and it

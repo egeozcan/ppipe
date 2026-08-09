@@ -264,9 +264,9 @@ type ExtensionMethodImpl<T, E extends Extensions, Async extends boolean, K exten
 	? (
 			...args: A
 		) => PipeWithExtensions<
-			Awaited<ExtensionResultType<T, V, R>>,
+			Awaited<ExtensionResultType<T, V, R, A>>,
 			E,
-			CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
+			CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R, A>>>
 		>
 	: never;
 

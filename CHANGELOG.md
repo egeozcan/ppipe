@@ -12,17 +12,32 @@ coverage. Several types became stricter, so this is a major bump.
 - **Extensions are no longer offered on pipes they cannot accept.** `ExtensionMethods` inferred the
   extension's first parameter but never checked it against the pipe's value type, so every extension
   appeared on every pipe. `ppipe.extend({ upper: (v: string) => v.toUpperCase() })(42).upper()`
-  type-checked cleanly and threw `v.toUpperCase is not a function` at runtime. Now guarded by
-  `Awaited<T> extends V`. Generic pass-through extensions (`<G>(v: G) => G`) are unaffected
+  type-checked cleanly and threw `v.toUpperCase is not a function` at runtime. Now guarded by an
+  assignability probe against the pipe's value type. Generic pass-through extensions
+  (`<G>(v: G) => G`) accept any value and are unaffected
 - **`.value` / `.val` resolve to an exact type.** They were always `T | Promise<T>`, so the correctly
   tracked `Async` flag never reached callers and every call site needed a cast. Now typed
   `PipeValue<T, Async>` — `T` for sync chains, `Promise<T>` for async ones
 - **`extend()` now overrides same-named extensions** instead of intersecting them. The type was
   `E & NewE` while the runtime spread replaced the key; now `MergeExtensions<E, NewE>`
+- **`IsAsync` tests `PromiseLike`, not `Promise`.** The runtime awaits anything with a callable
+  `.then` (`isThenable`), so a bare thenable was classified sync and `.value` typed as a plain
+  value while returning a Promise:
+  `const n: number = ppipe(somePromiseLike).value` compiled, then `n.toFixed()` threw
 - **`IsAsync<never>` is now `false`** instead of `never`, which leaked into `.value` as
   `Promise<never>`. Distribution over genuine unions is retained on purpose: `IsAsync<number |
   Promise<number>>` stays `boolean`, so `.value` stays `number | Promise<number>` — the honest
   answer when the compiler cannot tell which it is
+- **Correlated generic extensions are no longer mistaken for identity functions.**
+  `<G>(v: G, replacement: G) => G` infers `V` and `R` as `unknown` exactly as a true identity
+  function does, so the pipe's type was preserved and
+  `ppipe.extend({ replace })(1).replace("wrong")` on a number pipe typed as `number` while returning
+  a string. `ExtensionResultType` now also inspects the trailing argument types. Extensions with
+  concretely typed extra parameters — `<G>(v: G, label?: string) => G` — are unaffected
+- **The extension guard no longer rejects overloaded extension functions.** It is now an
+  assignability probe rather than a comparison against the inferred first parameter, because
+  `infer` only ever sees an overloaded function's last signature. An extension declared
+  `(v: string): string` / `(v: number): number` was unusable on a string pipe
 - **`ppipe(promise).value`** no longer resolves to the uninhabitable
   `Promise<T> | Promise<Promise<T>>`
 - **Fixed a typo in the 4-argument `{0,2}` placeholder overload**, where `b` and `d` were forced to
@@ -58,8 +73,9 @@ coverage. Several types became stricter, so this is a major bump.
 - README: exact `.value` typing, extension value-type checking, `extend()` override semantics, and a
   new limitations section covering overloaded functions (with a lambda-wrapping workaround) and the
   deliberate acceptance of zero-parameter functions
-- CLAUDE.md: extension type rules, why `Async` must stay load-bearing, why `IsAsync` needs the tuple
-  wrapper, and why `ExactArityFn` must keep returning `never`
+- CLAUDE.md: extension type rules, why `Async` must stay load-bearing, why `IsAsync` is deliberately
+  three-state (and must keep distributing over unions), why `ExactArityFn` must keep returning
+  `never`, and that an arity mismatch is only reported on member access — never at the `.pipe()` call
 
 ### Notes
 

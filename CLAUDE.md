@@ -125,10 +125,18 @@ branch carries the `ArityMismatch` marker, which exists purely to put a readable
 **Example of caught error:**
 ```typescript
 const subtract = (a: number, b: number) => a - b;  // 2 params
-ppipe(8).pipe(subtract, _, 3, 5, 10);  // 4 args - type error!
-// Accessing .value produces: "Property 'value' does not exist on type
-// 'ArityMismatch<"the arguments passed to .pipe() do not match the piped function's parameters">'"
+
+// This line COMPILES. The call itself is not rejected - it evaluates to an
+// ArityMismatch marker, and the error only appears when something is read off it.
+const bad = ppipe(8).pipe(subtract, _, 3, 5, 10);
+
+bad.value;  // Property 'value' does not exist on type
+            // 'ArityMismatch<"the arguments passed to .pipe() do not match
+            //  the piped function's parameters">'
 ```
+A chain that never reads a member — a bare `.pipe(...)` statement — is therefore not
+flagged at all. Erroring at the call site would require the overload itself to fail
+to resolve, which would cost the contextual typing that makes untyped lambdas work.
 
 **Design tradeoffs:**
 - Error appears on member access, not at the `.pipe()` call site (TypeScript limitation)
