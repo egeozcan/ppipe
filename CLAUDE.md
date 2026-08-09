@@ -13,6 +13,14 @@ npm run lint       # ESLint with auto-fix
 
 Tests use Mocha + Chai. Run a single test file: `npm run build && mocha test/test.js --grep "pattern"`.
 
+`npm test` runs `typecheck:types` first — the type-level suite in `test/types.test.ts`. That file
+produces no runtime output; it passes if and only if it compiles. Add a case there for any change
+to the public types.
+
+```bash
+npm run typecheck:types   # type-level assertions only (test/types.test.ts)
+```
+
 ## Architecture
 
 **ppipe** is a strictly-typed function piping library (~300 lines). TypeScript v3.0 rewrite prioritizes type safety over runtime flexibility.
@@ -25,7 +33,7 @@ Tests use Mocha + Chai. Run a single test file: `npm run build && mocha test/tes
   - `value`/`val` - extracts result (sync or Promise)
   - `then()`/`catch()` - Promise interface
   - Extension methods added dynamically via `Object.assign`
-- **types.ts** - Type definitions. Heavy use of conditional types (`IsAsync`, `CombineAsync`) and function overloads (40+ for placeholder positioning). Exports `PlaceholderBrand` symbol
+- **types.ts** - Type definitions. Heavy use of conditional types (`IsAsync`, `CombineAsync`, `PipeValue`) and function overloads (40+ for placeholder positioning). Exports `PlaceholderBrand` symbol
 - **placeholder.ts** - Branded `_` singleton using Symbol for type-safe argument positioning
 
 ### Key Design Patterns
@@ -46,6 +54,33 @@ The `Pipe<T, E, Async>` interface tracks:
 - `T` - current value type
 - `E` - extension functions record (`Record<string, unknown>`)
 - `Async` - boolean flag, propagated via `CombineAsync` when any function returns Promise
+
+**`Async` must stay load-bearing.** `.value` / `.val` are typed `PipeValue<T, Async>`, which
+resolves to `Awaited<T>` for sync chains and `Promise<Awaited<T>>` for async ones. Before this,
+`Async` was computed but never consumed and `.value` was always `T | Promise<T>`, forcing a cast
+at every call site. Any change that reverts `.value` to a union defeats the whole `Async` machinery.
+
+**`IsAsync` is non-distributive** — `[T] extends [Promise<unknown>]`, not `T extends ...`. The naked
+form distributes, making `IsAsync<number | Promise<number>>` collapse to `boolean` and `IsAsync<never>`
+to `never`. Keep the tuple wrapper.
+
+### Extension Type Rules
+
+Three invariants in `ExtensionMethods<T, E, Async>`, each with cases in `test/types.test.ts`:
+
+1. **Value-type guard** - `Awaited<T> extends V` gates each method, where `V` is the extension's
+   first parameter. An extension declaring `(v: string)` is not offered on a pipe holding a number.
+   Without this, `ppipe.extend({ upper: (v: string) => v.toUpperCase() })(42).upper()` type-checked
+   and threw at runtime.
+2. **Generic pass-through** - `IsGenericIdentity<V, R>` preserves the pipe's `T` for `<G>(v: G) => G`
+   style extensions. Those infer `V` as `unknown`, so the guard above admits them everywhere.
+3. **Override semantics** - `extend()` returns `MergeExtensions<E, NewE>` (`Omit<E, keyof NewE> & NewE`),
+   mirroring the runtime spread where later keys replace earlier ones. A plain `E & NewE` intersection
+   produces an overload set whose resolution does not match runtime behaviour.
+
+`ExtensionMethodImpl` in `pipe.ts` intentionally omits the value-type guard: it types the
+implementation, which builds a method for every extension unconditionally. The public
+`ExtensionMethods` type is what gates access.
 
 ### ESLint Strict Mode
 
@@ -72,17 +107,29 @@ The type system enforces that functions receive the correct number of arguments.
 
 2. **Explicit overloads (1-4 args)** - Each overload uses `ExactArityFn<Fn, N>` to ensure the function's parameter count matches the number of arguments passed.
 
-3. **Variadic fallback (5+ args)** - Uses `VariadicPipeResult` which checks `FinalArgs<Args, T> extends Parameters<Fn>`. Returns `never` on mismatch.
+3. **Variadic fallback (5+ args)** - Uses `VariadicPipeResult` which checks `FinalArgs<Args, T> extends Parameters<Fn>`. Returns `ArityMismatch<Message>` on mismatch.
+
+`ExactArityFn` must keep returning `never` — that is what makes a non-matching overload drop out of
+resolution so the call falls through to the variadic fallback. Only `VariadicPipeResult`'s failure
+branch carries the `ArityMismatch` marker, which exists purely to put a readable name in the error.
 
 **Example of caught error:**
 ```typescript
 const subtract = (a: number, b: number) => a - b;  // 2 params
 ppipe(8).pipe(subtract, _, 3, 5, 10);  // 4 args - type error!
-// Result is 'never', accessing .value produces: "Property 'value' does not exist on type 'never'"
+// Accessing .value produces: "Property 'value' does not exist on type
+// 'ArityMismatch<"the arguments passed to .pipe() do not match the piped function's parameters">'"
 ```
 
 **Design tradeoffs:**
-- Error appears when accessing `.value`, not at the `.pipe()` call site (TypeScript limitation)
+- Error appears on member access, not at the `.pipe()` call site (TypeScript limitation)
 - Untyped lambdas work for 1-4 args due to contextual typing from `Awaited<T>` in placeholder positions
 - 5+ args require typed functions/lambdas because variadic fallback can't provide contextual typing
 - Variadic functions (`...rest` params) are allowed through the arity check
+- Overloaded functions resolve against their **last** overload only, since `Parameters`/`ReturnType`
+  see no other. Not fixable in this design; documented in README with a lambda-wrapping workaround
+  and pinned in `test/types.test.ts`
+- **Zero-parameter functions are deliberately accepted.** `.pipe(fn)` always calls `fn` with the
+  current value, but `() => x` is assignable to `(value: T) => x` under normal TS rules. The runtime
+  suite depends on this for side-effecting and rejecting helpers — do not "fix" it with an arity guard
+  on the 1-arg overload

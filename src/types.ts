@@ -7,8 +7,11 @@
 export const PlaceholderBrand: unique symbol = Symbol("ppipe.placeholder");
 export type PlaceholderType = { readonly [PlaceholderBrand]: true };
 
-// Async state tracking - determines if a type is a Promise
-export type IsAsync<T> = T extends Promise<unknown> ? true : false;
+// Async state tracking - determines if a type is a Promise.
+// The tuple wrapper suppresses distribution so that unions and `never` are
+// answered as a whole: IsAsync<number | Promise<number>> is false, not boolean,
+// and IsAsync<never> is false, not never.
+export type IsAsync<T> = [T] extends [Promise<unknown>] ? true : false;
 
 // Extensions base type - a record with string keys
 // The actual function types are preserved through the generic parameter E
@@ -18,8 +21,17 @@ export type Extensions = Record<string, unknown>;
 // Helper to combine async states (true if either is true)
 export type CombineAsync<A extends boolean, B extends boolean> = A extends true ? true : B extends true ? true : false;
 
-// Type guard helper - checks if a value is a function
-export type IsFunction<T> = T extends (...args: never[]) => unknown ? true : false;
+// Resolves the type of `.value` / `.val` from the tracked Async flag:
+// Promise<T> for async pipes, plain T for sync pipes.
+// If Async is `boolean` (an input the compiler cannot classify), this
+// distributes to `T | Promise<T>` - the honest answer for that case.
+export type PipeValue<T, Async extends boolean> = Async extends true ? Promise<Awaited<T>> : Awaited<T>;
+
+// Reported when the arguments passed to `.pipe()` do not match the piped
+// function's parameters. Surfaces as a named type in the error message
+// instead of a bare `never`.
+declare const ArityErrorBrand: unique symbol;
+export type ArityMismatch<Message extends string> = { readonly [ArityErrorBrand]: Message };
 
 // Helper: Only matches if function has exactly N parameters (or is variadic)
 // This prevents functions with fewer parameters from matching overloads expecting more
@@ -51,8 +63,9 @@ type ReplacePlaceholders<Args extends unknown[], T> = {
 type FinalArgs<Args extends unknown[], T> =
 	HasPlaceholder<Args> extends true ? ReplacePlaceholders<Args, T> : [...Args, T];
 
-// Variadic pipe result: validates args against function parameters
-// Returns PipeWithExtensions if valid, never if not (causes type error)
+// Variadic pipe result: validates args against function parameters.
+// Returns PipeWithExtensions if valid, an ArityMismatch marker if not. Member
+// access on that marker fails, which is where the error surfaces.
 export type VariadicPipeResult<
 	Fn extends (...args: never[]) => unknown,
 	Args extends unknown[],
@@ -62,7 +75,7 @@ export type VariadicPipeResult<
 > =
 	FinalArgs<Args, Awaited<T>> extends Parameters<Fn>
 		? PipeWithExtensions<Awaited<ReturnType<Fn>>, E, CombineAsync<Async, IsAsync<ReturnType<Fn>>>>
-		: never;
+		: ArityMismatch<"the arguments passed to .pipe() do not match the piped function's parameters">;
 
 // ==========================================
 // Pipe Interface with Placeholder Overloads
@@ -218,12 +231,12 @@ export interface Pipe<T, E extends Extensions = Record<string, never>, Async ext
 		d: D
 	): PipeWithExtensions<Awaited<ReturnType<Fn>>, E, CombineAsync<Async, IsAsync<ReturnType<Fn>>>>;
 
-	pipe<Fn extends (a: Awaited<T>, b: B, c: Awaited<T>, d: B) => unknown, B>(
+	pipe<Fn extends (a: Awaited<T>, b: B, c: Awaited<T>, d: D) => unknown, B, D>(
 		fn: ExactArityFn<Fn, 4>,
 		a: PlaceholderType,
 		b: B,
 		c: PlaceholderType,
-		d: B
+		d: D
 	): PipeWithExtensions<Awaited<ReturnType<Fn>>, E, CombineAsync<Async, IsAsync<ReturnType<Fn>>>>;
 
 	// 4 args - all placeholders
@@ -279,12 +292,12 @@ export interface Pipe<T, E extends Extensions = Record<string, never>, Async ext
 	// Value extraction
 	// ==========================================
 
-	// Returns T for sync pipes, Promise<T> for async pipes
-	// Use `await pipe.value` or `.then()` for consistent handling
-	readonly value: T | Promise<T>;
+	// Returns T for sync pipes, Promise<T> for async pipes, driven by the
+	// tracked Async flag - so no narrowing or cast is needed at the call site.
+	readonly value: PipeValue<T, Async>;
 
 	// Legacy alias for value
-	readonly val: T | Promise<T>;
+	readonly val: PipeValue<T, Async>;
 
 	// ==========================================
 	// Promise interface
@@ -323,18 +336,24 @@ export type ExtensionResultType<PipeT, V, R> = IsGenericIdentity<V, R> extends t
 // Returns PipeWithExtensions to preserve extension methods through the chain
 // Only maps keys where the value is a function
 // For generic identity functions (where V and R are both unknown), preserves the pipe's type T
+//
+// The `Awaited<T> extends V` guard keeps an extension off pipes it cannot accept:
+// an extension taking a string is not offered on a pipe holding a number. Generic
+// pass-through extensions infer V as `unknown`, so they remain available everywhere.
 export type ExtensionMethods<T, E extends Extensions, Async extends boolean> = {
 	[K in keyof E as E[K] extends (...args: infer _Args) => unknown ? K : never]: E[K] extends (
 		value: infer V,
 		...args: infer A
 	) => infer R
-		? (
-				...args: A
-			) => PipeWithExtensions<
-				Awaited<ExtensionResultType<T, V, R>>,
-				E,
-				CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
-			>
+		? Awaited<T> extends V
+			? (
+					...args: A
+				) => PipeWithExtensions<
+					Awaited<ExtensionResultType<T, V, R>>,
+					E,
+					CombineAsync<Async, IsAsync<ExtensionResultType<T, V, R>>>
+				>
+			: never
 		: never;
 };
 
@@ -342,8 +361,12 @@ export type ExtensionMethods<T, E extends Extensions, Async extends boolean> = {
 // Factory interface
 // ==========================================
 
+// Merging extensions mirrors the runtime spread: keys in NewE replace keys of
+// the same name in E, rather than intersecting with them.
+export type MergeExtensions<E extends Extensions, NewE extends Extensions> = Omit<E, keyof NewE> & NewE;
+
 export interface PipeFactory<E extends Extensions = Record<string, never>> {
 	<T>(value: T): PipeWithExtensions<T, E, IsAsync<T>>;
 	readonly _: PlaceholderType;
-	extend<NewE extends Extensions>(ext: NewE): PipeFactory<E & NewE>;
+	extend<NewE extends Extensions>(ext: NewE): PipeFactory<MergeExtensions<E, NewE>>;
 }

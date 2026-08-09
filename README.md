@@ -103,11 +103,22 @@ ppipe(1)
 Get the current value with `.value` (or `.val`):
 
 ```typescript
-// Sync value
+// Sync value - typed as number, not number | Promise<number>
 const num = ppipe(5).pipe(x => x * 2).value; // 10
 
-// Async value (returns Promise)
+// Async value (returns Promise) - typed as Promise<number>
 const asyncNum = await ppipe(Promise.resolve(5)).pipe(x => x * 2).value;
+```
+
+`.value` follows the chain's tracked async state, so it resolves to an exact
+type and never needs a cast or a narrowing check:
+
+```typescript
+const a = ppipe(5).pipe(x => x * 2).value;              // number
+const b = ppipe(5).pipe(async x => `${x}`).value;       // Promise<string>
+
+// Awaiting the pipe itself works too, and always unwraps
+const c = await ppipe(5).pipe(async x => `${x}`);       // string
 ```
 
 ### Typed Extensions
@@ -186,7 +197,8 @@ pipe.pipe(fn, arg1, _)     // fn(arg1, value)
 
 ### `.value` / `.val`
 
-Gets the current value from the chain. Returns a Promise if any function in the chain was async.
+Gets the current value from the chain. Typed as `T` for a sync chain and `Promise<T>` if any
+function in the chain was async — the compiler knows which, so no cast is needed.
 
 ### `.then(onFulfilled?, onRejected?)`
 
@@ -211,6 +223,29 @@ const extended = ppipe.extend({
 ```
 
 Extension functions receive the piped value as their first argument.
+
+An extension is only offered on pipes whose value it can accept — an extension declaring
+`(v: string)` is not available on a pipe holding a number:
+
+```typescript
+const p = ppipe.extend({ upper: (v: string) => v.toUpperCase() });
+
+p("hi").upper();  // ✓ string pipe
+p(42).upper();    // ✗ Type error - `upper` is not available on a number pipe
+```
+
+Generic pass-through extensions such as `<T>(v: T) => T` accept any value and stay
+available across the whole chain.
+
+Calling `.extend()` with a name that already exists **replaces** the previous extension,
+matching the runtime merge:
+
+```typescript
+const base = ppipe.extend({ f: (v: number, n: number) => v + n });
+const next = base.extend({ f: (v: number) => v.toString() });
+
+next(5).f();   // string - the overriding definition, taking no extra args
+```
 
 ## Migration from v2.x
 
@@ -279,15 +314,20 @@ ppipe(10).pipe(subtract, _, 3).value;  // 7
 
 // ✗ Error - 2-param function with 4 args
 ppipe(10).pipe(subtract, _, 3, 5, 10).value;
-// Type error: Property 'value' does not exist on type 'never'
+// Type error: Property 'value' does not exist on type
+// 'ArityMismatch<"the arguments passed to .pipe() do not match the piped function's parameters">'
 ```
+
+Argument *types* are checked alongside the count, in both placeholder and trailing positions.
 
 ### Type Safety Strengths
 
 - **Full inference for lambdas** - Untyped lambdas get correct types for 1-4 arguments
-- **Arity mismatch detection** - Extra arguments to named functions produce compile errors
-- **Async tracking** - The type system tracks whether the chain contains any async operations
+- **Arity mismatch detection** - Wrong argument counts and types produce compile errors
+- **Exact `.value` type** - Resolves to `T` or `Promise<T>` from tracked async state; never a union you must narrow
+- **Extension value-type checking** - An extension is unavailable on pipes it cannot accept
 - **Extension type preservation** - Generic identity extensions (like `log`) preserve the pipe's type
+- **Override-correct `extend()`** - Re-declaring an extension name replaces it, as the runtime does
 - **No `any` in public API** - Complete type safety throughout
 
 ### Type Safety Limitations
@@ -295,8 +335,31 @@ ppipe(10).pipe(subtract, _, 3, 5, 10).value;
 | Scenario | Behavior |
 |----------|----------|
 | 5+ args with untyped lambda | Requires explicit type annotations |
-| Arity errors | Appear on `.value` access, not at `.pipe()` call |
+| Arity errors | Appear on member access, not at the `.pipe()` call |
+| Overloaded functions | Resolve against the *last* overload only (see below) |
 | Variadic functions | Allowed through arity check (by design) |
+| Zero-parameter functions | Accepted; the value is passed and ignored (by design) |
+
+**Overloaded functions.** Arity and return types are derived via `Parameters<Fn>` / `ReturnType<Fn>`,
+which only see the final overload signature. Piping an overloaded function can therefore infer the
+wrong result type. Wrap it in a lambda to pin the intended signature:
+
+```typescript
+function over(a: number, b: number): number;
+function over(a: string, b: string): string;
+
+ppipe(5).pipe(over, _, 3);                    // ✗ infers string, from the last overload
+ppipe(5).pipe((a: number) => over(a, 3));     // ✓ number
+```
+
+**Zero-parameter functions.** `.pipe(fn)` always calls `fn` with the current value, but a function
+that declares no parameters is still accepted — this is standard TypeScript assignability, and it
+keeps side-effecting and throwing helpers idiomatic:
+
+```typescript
+ppipe(5).pipe(() => 42).value;                          // 42
+ppipe(5).pipe(() => Promise.reject(new Error("x")));    // rejects
+```
 
 ```typescript
 // 5+ args needs type annotations

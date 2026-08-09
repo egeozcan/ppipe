@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": ".",
+		"declaration": false,
+		"declarationMap": false,
+		"sourceMap": false,
+		// Type-level assertions are intentionally unreferenced bindings.
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
+	},
+	"include": ["src/**/*", "test/types.test.ts"]
+}
