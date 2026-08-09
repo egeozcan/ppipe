@@ -10,5 +10,9 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false
 	},
+	// The base config excludes "test", and `exclude` is inherited through
+	// `extends` and filters `include` - so it must be overridden here or this
+	// suite silently checks nothing.
+	"exclude": ["node_modules", "dist", "dist-test"],
 	"include": ["src/**/*", "test/types.test.ts"]
 }

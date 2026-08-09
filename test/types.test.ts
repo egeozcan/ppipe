@@ -67,6 +67,22 @@ const v6 = ppipe(5)
 	.pipe((x: number) => `${x}`).value;
 type _V6 = Expect<Equals<typeof v6, Promise<string>>>;
 
+// When the input could be either, `.value` must stay a union - the compiler
+// cannot know, and claiming `number` here would be unsound: a Promise at runtime
+// would return a Promise from a property typed as a plain number.
+declare const maybe: number | Promise<number>;
+const v7 = ppipe(maybe).value;
+type _V7 = Expect<Equals<typeof v7, number | Promise<number>>>;
+
+const v8 = ppipe(maybe).pipe((x: number) => x + 1).value;
+type _V8 = Expect<Equals<typeof v8, number | Promise<number>>>;
+
+// `never` is not a Promise.
+const v9 = ppipe(5).pipe((x: number): never => {
+	throw new Error(`${x}`);
+}).value;
+type _V9 = Expect<Equals<typeof v9, never>>;
+
 // Awaiting the pipe directly yields the unwrapped value.
 async function awaited() {
 	const a1 = await ppipe(5).pipe((x: number) => x + 1);

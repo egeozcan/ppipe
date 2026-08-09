@@ -60,9 +60,18 @@ resolves to `Awaited<T>` for sync chains and `Promise<Awaited<T>>` for async one
 `Async` was computed but never consumed and `.value` was always `T | Promise<T>`, forcing a cast
 at every call site. Any change that reverts `.value` to a union defeats the whole `Async` machinery.
 
-**`IsAsync` is non-distributive** — `[T] extends [Promise<unknown>]`, not `T extends ...`. The naked
-form distributes, making `IsAsync<number | Promise<number>>` collapse to `boolean` and `IsAsync<never>`
-to `never`. Keep the tuple wrapper.
+**`IsAsync` is deliberately three-state**: `true` for a Promise, `false` for a non-promise, and
+`boolean` for a union of both (or for `any`). The distribution in `T extends Promise<unknown>` is
+load-bearing — `boolean` is the *honest* answer when the compiler cannot tell, because `PipeValue`
+distributes it back into `T | Promise<T>` and forces the caller to handle both.
+
+Do not "simplify" it to a fully non-distributive `[T] extends [Promise<unknown>]`. That collapses
+the mixed case to `false`, typing `.value` as `T` while the runtime returns a Promise — the exact
+compile-clean/crash-at-runtime class of bug this release set out to remove. It also gets the corners
+backwards: `[never] extends [Promise<unknown>]` is `true` (never is assignable to everything), and
+`any` would report `true` rather than `boolean`. The `[T] extends [never]` guard at the front exists
+only because a naked conditional distributes over the empty union and returns `never` instead of a
+boolean. `test/types.test.ts` pins all of these.
 
 ### Extension Type Rules
 

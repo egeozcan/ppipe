@@ -7,11 +7,18 @@
 export const PlaceholderBrand: unique symbol = Symbol("ppipe.placeholder");
 export type PlaceholderType = { readonly [PlaceholderBrand]: true };
 
-// Async state tracking - determines if a type is a Promise.
-// The tuple wrapper suppresses distribution so that unions and `never` are
-// answered as a whole: IsAsync<number | Promise<number>> is false, not boolean,
-// and IsAsync<never> is false, not never.
-export type IsAsync<T> = [T] extends [Promise<unknown>] ? true : false;
+// Async state tracking - determines if a type is a Promise. Three-state by design:
+//   Promise<X>                -> true
+//   a non-promise             -> false
+//   a mix, or `any`           -> boolean
+// The distributive second half is deliberate. For `number | Promise<number>` the
+// compiler genuinely cannot tell, and `boolean` is the honest answer: PipeValue
+// distributes it back to `number | Promise<number>`, so callers must handle both.
+// Collapsing that to `false` would type `.value` as `number` while the runtime
+// hands back a Promise.
+// The `never` guard is only there because a naked `T extends ...` distributes over
+// the empty union and yields `never` rather than a boolean.
+export type IsAsync<T> = [T] extends [never] ? false : T extends Promise<unknown> ? true : false;
 
 // Extensions base type - a record with string keys
 // The actual function types are preserved through the generic parameter E

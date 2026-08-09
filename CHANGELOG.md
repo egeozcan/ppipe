@@ -19,8 +19,10 @@ coverage. Several types became stricter, so this is a major bump.
   `PipeValue<T, Async>` — `T` for sync chains, `Promise<T>` for async ones
 - **`extend()` now overrides same-named extensions** instead of intersecting them. The type was
   `E & NewE` while the runtime spread replaced the key; now `MergeExtensions<E, NewE>`
-- **`IsAsync` no longer distributes over unions.** `IsAsync<number | Promise<number>>` collapsed to
-  `boolean` and `IsAsync<never>` to `never`. Now `[T] extends [Promise<unknown>]`
+- **`IsAsync<never>` is now `false`** instead of `never`, which leaked into `.value` as
+  `Promise<never>`. Distribution over genuine unions is retained on purpose: `IsAsync<number |
+  Promise<number>>` stays `boolean`, so `.value` stays `number | Promise<number>` — the honest
+  answer when the compiler cannot tell which it is
 - **`ppipe(promise).value`** no longer resolves to the uninhabitable
   `Promise<T> | Promise<Promise<T>>`
 - **Fixed a typo in the 4-argument `{0,2}` placeholder overload**, where `b` and `d` were forced to
@@ -43,7 +45,9 @@ coverage. Several types became stricter, so this is a major bump.
 ### Added
 
 - Exported types `PipeValue`, `MergeExtensions`, `ArityMismatch`
-- `tsconfig.types-test.json` so the type-level suite inherits the project's full strictness
+- `tsconfig.types-test.json` so the type-level suite inherits the project's full strictness. It
+  overrides `exclude`, which is inherited through `extends` and filters `include` — without that the
+  suite silently checks nothing
 
 ### Removed
 
